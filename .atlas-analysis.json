@@ -1,0 +1,164 @@
+{
+  "projectType": "framework",
+  "projectName": "Gutenberg Block Editor",
+  "projectDescription": "A modular block-based content editing framework for WordPress and beyond.",
+  "theme": "sequoia",
+  "primaryColor": "#2271b1",
+  "lightColor": "#72aee6",
+  "darkColor": "#135e96",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "what-is-gutenberg",
+              "key-concepts"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started/installation",
+              "getting-started/quickstart",
+              "getting-started/development-environment",
+              "getting-started/create-first-block"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/blocks",
+              "concepts/block-editor-architecture",
+              "concepts/data-layer",
+              "concepts/components",
+              "concepts/extensibility"
+            ]
+          },
+          {
+            "group": "Block Development",
+            "pages": [
+              "blocks/block-api",
+              "blocks/block-registration",
+              "blocks/block-attributes",
+              "blocks/block-supports",
+              "blocks/block-patterns",
+              "blocks/inner-blocks"
+            ]
+          },
+          {
+            "group": "Advanced Guides",
+            "pages": [
+              "guides/theme-json",
+              "guides/data-management",
+              "guides/editor-customization",
+              "guides/filters-and-hooks",
+              "guides/internationalization"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Packages",
+        "groups": [
+          {
+            "group": "Core Packages",
+            "pages": [
+              "packages/overview",
+              "packages/blocks",
+              "packages/block-editor",
+              "packages/editor",
+              "packages/data"
+            ]
+          },
+          {
+            "group": "UI Components",
+            "pages": [
+              "packages/components",
+              "packages/compose",
+              "packages/element",
+              "packages/icons"
+            ]
+          },
+          {
+            "group": "Editor Implementations",
+            "pages": [
+              "packages/edit-post",
+              "packages/edit-site",
+              "packages/edit-widgets"
+            ]
+          },
+          {
+            "group": "Developer Tools",
+            "pages": [
+              "packages/scripts",
+              "packages/env",
+              "packages/create-block",
+              "packages/e2e-test-utils-playwright"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "packages/api-fetch",
+              "packages/i18n",
+              "packages/hooks",
+              "packages/dom",
+              "packages/url"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Contributing",
+        "groups": [
+          {
+            "group": "Get Involved",
+            "pages": [
+              "contributing/overview",
+              "contributing/code-contributions",
+              "contributing/testing",
+              "contributing/documentation"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Modular block-based content editor",
+    "Rich component library with 100+ UI components",
+    "WordPress-agnostic block-editor package",
+    "Comprehensive data layer with Redux-like stores",
+    "Extensible architecture with hooks and filters",
+    "Developer tools for scaffolding and testing",
+    "Site editor and full site editing capabilities",
+    "Theme.json configuration system"
+  ],
+  "publicApiSurface": [
+    "@wordpress/blocks - Block registration and management",
+    "@wordpress/block-editor - Generic block editor",
+    "@wordpress/editor - WordPress post-type-aware editor",
+    "@wordpress/components - UI component library",
+    "@wordpress/data - Data layer and state management",
+    "@wordpress/element - React abstraction layer",
+    "@wordpress/compose - React hooks and higher-order components",
+    "@wordpress/hooks - Filters and actions system",
+    "@wordpress/api-fetch - API request utilities",
+    "@wordpress/i18n - Internationalization utilities",
+    "@wordpress/scripts - Build and development scripts",
+    "@wordpress/create-block - Block scaffolding CLI",
+    "@wordpress/env - Local WordPress development environment",
+    "@wordpress/edit-post - Post editor implementation",
+    "@wordpress/edit-site - Site editor implementation",
+    "registerBlockType() - Register custom blocks",
+    "useBlockProps() - Block wrapper properties hook",
+    "InspectorControls - Block settings sidebar",
+    "RichText - Rich text editing component",
+    "useSelect() - Data store selector hook",
+    "useDispatch() - Data store action dispatcher hook"
+  ]
+}
