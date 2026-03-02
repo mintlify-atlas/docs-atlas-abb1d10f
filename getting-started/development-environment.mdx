@@ -1,0 +1,407 @@
+---
+title: Development Environment Setup
+description: Set up a complete local development environment for Gutenberg block development
+---
+
+This guide walks you through setting up a professional development environment for building custom WordPress blocks and contributing to the Gutenberg project.
+
+## Prerequisites
+
+You'll need to install these tools before setting up your development environment:
+
+### Node.js and npm
+
+Gutenberg requires **Node.js v20** and **npm v10**. We recommend using Node Version Manager (nvm) for easy version management.
+
+<CodeGroup>
+```bash macOS/Linux
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# Install Node.js v20
+nvm install 20
+nvm use 20
+
+# Verify installation
+node --version  # Should show v20.x.x
+npm --version   # Should show v10.x.x
+```
+
+```bash Windows (WSL2)
+# Install nvm for Windows
+# Download from: https://github.com/nvm-sh/nvm#installing-and-updating
+
+# Then install Node.js
+nvm install 20
+nvm use 20
+```
+</CodeGroup>
+
+<Tip>
+Always use the Active LTS version of Node.js for the best compatibility. Check the [Node.js release schedule](https://github.com/nodejs/Release#release-schedule) for current versions.
+</Tip>
+
+### Git
+
+Gutenberg uses Git for version control. Install Git if you haven't already:
+
+<CodeGroup>
+```bash macOS
+brew install git
+```
+
+```bash Linux (Ubuntu/Debian)
+sudo apt-get update
+sudo apt-get install git
+```
+
+```bash Windows
+# Download from: https://git-scm.com/download/win
+```
+</CodeGroup>
+
+### Docker Desktop
+
+Docker powers the `wp-env` local WordPress environment. Install Docker Desktop for your platform:
+
+- **Windows**: [Docker Desktop for Windows](https://docs.docker.com/desktop/install/windows-install/) (WSL2 backend recommended)
+- **macOS**: [Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/)
+- **Linux**: [Docker Desktop for Linux](https://docs.docker.com/desktop/install/linux-install/)
+
+<Note>
+Windows 10 Home users should follow the [WSL2 installation instructions](https://docs.docker.com/docker-for-windows/wsl/) for the best experience.
+</Note>
+
+## Setting Up wp-env
+
+`wp-env` is the official WordPress local development environment tool. It creates a Docker-based WordPress instance with zero configuration.
+
+### Install wp-env Globally
+
+```bash
+npm install -g @wordpress/env
+```
+
+### Quick Start with wp-env
+
+<Steps>
+  <Step title="Navigate to Your Plugin Directory">
+    ```bash
+    cd /path/to/your/wordpress-plugin
+    ```
+  </Step>
+
+  <Step title="Start the Environment">
+    Ensure Docker is running, then start wp-env:
+
+    ```bash
+    wp-env start
+    ```
+
+    This command:
+    - Downloads the latest WordPress Docker image
+    - Creates a MySQL database
+    - Installs and activates your plugin
+    - Mounts your plugin code as a Docker volume
+
+    <Note>
+    First-time setup may take several minutes as Docker downloads the required images.
+    </Note>
+  </Step>
+
+  <Step title="Access Your WordPress Site">
+    Once started, your WordPress site is available at:
+
+    - **WordPress site**: http://localhost:8888
+    - **Admin dashboard**: http://localhost:8888/wp-admin/
+    - **Credentials**: Username `admin`, Password `password`
+
+    Your plugin is automatically installed and activated.
+  </Step>
+</Steps>
+
+## Managing wp-env
+
+### Essential Commands
+
+<CodeGroup>
+```bash Start Environment
+wp-env start
+```
+
+```bash Stop Environment
+wp-env stop
+```
+
+```bash Destroy Environment
+wp-env destroy
+```
+
+```bash Check Status
+wp-env status
+```
+
+```bash Update WordPress
+wp-env start --update
+```
+</CodeGroup>
+
+### Expected Output
+
+When `wp-env start` completes successfully, you'll see:
+
+```bash
+WordPress development site started at http://localhost:8888/
+MySQL is listening on port 51220
+
+ ✔ Done! (in 261s 898ms)
+```
+
+## Accessing the Database
+
+### Using phpMyAdmin
+
+phpMyAdmin is available by default at http://localhost:9000/
+
+### Using External Database Tools
+
+To connect with tools like [Sequel Ace](https://sequel-ace.com/) or MySQL Workbench:
+
+<Steps>
+  <Step title="Find the MySQL Port">
+    Start wp-env and note the MySQL port number in the output:
+
+    ```bash
+    wp-env start
+    ```
+
+    Look for: `MySQL is listening on port {MYSQL_PORT_NUMBER}`
+  </Step>
+
+  <Step title="Connect with These Credentials">
+    ```
+    Host: 127.0.0.1
+    Username: root
+    Password: password
+    Database: wordpress
+    Port: {MYSQL_PORT_NUMBER}
+    ```
+
+    <Warning>
+    The MySQL port changes each time wp-env restarts. You'll need to update your connection settings if you restart the environment.
+    </Warning>
+  </Step>
+</Steps>
+
+## Setting Up for Gutenberg Development
+
+If you're contributing to Gutenberg itself, follow these additional steps:
+
+### Clone the Gutenberg Repository
+
+<Steps>
+  <Step title="Fork and Clone">
+    ```bash
+    # Fork the repository on GitHub, then clone your fork
+    git clone https://github.com/YOUR_GITHUB_USERNAME/gutenberg.git
+    cd gutenberg
+    ```
+  </Step>
+
+  <Step title="Add Upstream Remote">
+    ```bash
+    git remote add upstream https://github.com/WordPress/gutenberg.git
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    ```bash
+    npm install
+    ```
+
+    <Note>
+    This requires Python to be installed and available in your system PATH.
+    </Note>
+  </Step>
+
+  <Step title="Build Gutenberg">
+    For development with auto-rebuild on file changes:
+
+    ```bash
+    npm run dev
+    ```
+
+    For a one-time production build:
+
+    ```bash
+    npm run build
+    ```
+  </Step>
+
+  <Step title="Start WordPress Environment">
+    ```bash
+    npm run wp-env start
+    ```
+
+    This uses the wp-env configuration specific to the Gutenberg project (defined in `.wp-env.json`).
+  </Step>
+</Steps>
+
+### Gutenberg-Specific Environment
+
+The Gutenberg project includes a custom `.wp-env.json` configuration:
+
+```json .wp-env.json
+{
+    "core": "WordPress/WordPress",
+    "plugins": [ "." ],
+    "themes": [ "./test/emptytheme" ],
+    "phpmyadminPort": 9000
+}
+```
+
+This configuration:
+- Mounts Gutenberg as a plugin
+- Includes test themes
+- Configures phpMyAdmin on port 9000
+
+## Alternative Development Environments
+
+If you prefer not to use Docker, you can use these alternatives:
+
+### Local by Flywheel
+
+[Local](https://localwp.com/) provides a GUI-based local WordPress environment.
+
+<Steps>
+  <Step title="Install Local">
+    Download and install Local from [localwp.com](https://localwp.com/)
+  </Step>
+
+  <Step title="Create WordPress Site">
+    Use Local's interface to create a new WordPress site
+  </Step>
+
+  <Step title="Add Your Plugin">
+    Symlink or copy your plugin to the site's `wp-content/plugins/` directory:
+
+    ```bash
+    ln -s /path/to/your-plugin /path/to/local-site/app/public/wp-content/plugins/your-plugin
+    ```
+  </Step>
+</Steps>
+
+### MAMP
+
+[MAMP](https://www.mamp.info/) is a classic Apache/MySQL/PHP stack for local development.
+
+<Warning>
+When using MAMP, you may need to disable OPCache for PHP file changes to reflect immediately. Go to **MAMP > Preferences > PHP** and set **Cache** to **off**.
+</Warning>
+
+## Development Tools Configuration
+
+Configure your editor for the best development experience:
+
+### Visual Studio Code
+
+Install these recommended extensions:
+
+1. **EditorConfig** - Automatically configures editor settings
+2. **ESLint** - JavaScript linting
+3. **Prettier** - Code formatting
+
+#### VS Code Settings
+
+Add to your `.vscode/settings.json`:
+
+```json .vscode/settings.json
+{
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    }
+}
+```
+
+## Running Tests
+
+Gutenberg includes comprehensive test suites:
+
+<CodeGroup>
+```bash JavaScript Unit Tests
+npm run test:unit
+```
+
+```bash PHP Tests
+composer test
+```
+
+```bash End-to-End Tests
+npm run test:e2e
+```
+
+```bash Linting
+npm run lint:js
+```
+
+```bash Format Code
+npm run format
+```
+</CodeGroup>
+
+<Note>
+PHP and E2E tests require wp-env to be running. Start it with `npm run wp-env start` before running these tests.
+</Note>
+
+## Troubleshooting
+
+### Docker Issues
+
+<AccordionGroup>
+  <Accordion title="wp-env won't start">
+    1. Ensure Docker Desktop is running
+    2. Check for port conflicts on 8888 (WordPress) or 9000 (phpMyAdmin)
+    3. Try destroying and recreating: `wp-env destroy && wp-env start`
+  </Accordion>
+
+  <Accordion title="Port 8888 is already in use">
+    Use a custom port:
+
+    ```bash
+    WP_ENV_PORT=3333 wp-env start
+    ```
+
+    Your site will be available at http://localhost:3333
+  </Accordion>
+
+  <Accordion title="Permission errors on Linux">
+    Add your user to the Docker group:
+
+    ```bash
+    sudo usermod -aG docker $USER
+    ```
+
+    Then log out and log back in.
+  </Accordion>
+</AccordionGroup>
+
+For more troubleshooting help, see the [wp-env troubleshooting guide](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-env/#troubleshooting-common-problems).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Your First Block" icon="cube" href="/getting-started/create-first-block">
+    Build a custom block from scratch
+  </Card>
+  <Card title="Git Workflow" icon="git-alt" href="https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/code/git-workflow.md">
+    Learn the Git workflow for contributing
+  </Card>
+</CardGroup>

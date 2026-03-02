@@ -1,0 +1,560 @@
+---
+title: '@wordpress/dom'
+description: 'DOM utilities for WordPress'
+---
+
+# DOM
+
+The `@wordpress/dom` package provides a comprehensive set of utilities for working with the DOM in WordPress. It includes functions for selection management, element manipulation, focus handling, and HTML sanitization.
+
+## Installation
+
+You can install the package using npm:
+
+```bash
+npm install @wordpress/dom --save
+```
+
+## Selection Utilities
+
+### documentHasSelection( doc )
+
+Checks whether the current document has a selection, including focus in input fields, textareas, and general rich-text selection.
+
+<ParamField path="doc" type="Document" required>
+  The document to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if there is selection, false if not.
+</ResponseField>
+
+```js
+import { documentHasSelection } from '@wordpress/dom';
+
+if ( documentHasSelection( document ) ) {
+	console.log( 'Document has active selection' );
+}
+```
+
+### documentHasTextSelection( doc )
+
+Checks whether the current document has selected text. This applies to ranges of text in the document, not selection inside `<input>` and `<textarea>` elements.
+
+<ParamField path="doc" type="Document" required>
+  The document to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if there is text selection, false if not.
+</ResponseField>
+
+### documentHasUncollapsedSelection( doc )
+
+Checks whether the current document has any sort of uncollapsed selection, including ranges of text and any selection inside textual inputs.
+
+<ParamField path="doc" type="Document" required>
+  The document to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether there is any recognizable text selection in the document.
+</ResponseField>
+
+### isEntirelySelected( element )
+
+Checks whether the contents of the element have been entirely selected.
+
+<ParamField path="element" type="HTMLElement" required>
+  The element to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if entirely selected, false if not.
+</ResponseField>
+
+### isSelectionForward( selection )
+
+Returns true if the given selection object is in the forward direction.
+
+<ParamField path="selection" type="Selection" required>
+  Selection object to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether the selection is forward.
+</ResponseField>
+
+## Caret Positioning
+
+### computeCaretRect( win )
+
+Gets the rectangle for the selection in a container.
+
+<ParamField path="win" type="Window" required>
+  The window of the selection.
+</ParamField>
+
+<ResponseField name="return" type="DOMRect | null">
+  The rectangle.
+</ResponseField>
+
+### getRectangleFromRange( range )
+
+Gets the rectangle of a given Range. Returns `null` if no suitable rectangle can be found. Use this instead of `Range.getBoundingClientRect()`, which is often broken for collapsed ranges.
+
+<ParamField path="range" type="Range" required>
+  The range.
+</ParamField>
+
+<ResponseField name="return" type="DOMRect | null">
+  The rectangle.
+</ResponseField>
+
+### placeCaretAtHorizontalEdge( container, isReverse )
+
+Places the caret at start or end of a given element.
+
+<ParamField path="container" type="HTMLElement" required>
+  Focusable element.
+</ParamField>
+
+<ParamField path="isReverse" type="boolean" required>
+  True for end, false for start.
+</ParamField>
+
+```js
+import { placeCaretAtHorizontalEdge } from '@wordpress/dom';
+
+// Place caret at the end of the element
+placeCaretAtHorizontalEdge( element, true );
+```
+
+### placeCaretAtVerticalEdge( container, isReverse, rect )
+
+Places the caret at the top or bottom of a given element.
+
+<ParamField path="container" type="HTMLElement" required>
+  Focusable element.
+</ParamField>
+
+<ParamField path="isReverse" type="boolean" required>
+  True for bottom, false for top.
+</ParamField>
+
+<ParamField path="rect" type="DOMRect">
+  The rectangle to position the caret with.
+</ParamField>
+
+## Edge Detection
+
+### isHorizontalEdge( container, isReverse )
+
+Checks whether the selection is horizontally at the edge of the container.
+
+<ParamField path="container" type="HTMLElement" required>
+  Focusable element.
+</ParamField>
+
+<ParamField path="isReverse" type="boolean" required>
+  Set to true to check left, false for right.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if at the horizontal edge, false if not.
+</ResponseField>
+
+### isVerticalEdge( container, isReverse )
+
+Checks whether the selection is vertically at the edge of the container.
+
+<ParamField path="container" type="HTMLElement" required>
+  Focusable element.
+</ParamField>
+
+<ParamField path="isReverse" type="boolean" required>
+  Set to true to check top, false for bottom.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if at the vertical edge, false if not.
+</ResponseField>
+
+## Element Type Detection
+
+### isFormElement( element )
+
+Detects if element is a form element.
+
+<ParamField path="element" type="Element" required>
+  The element to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if form element, false otherwise.
+</ResponseField>
+
+### isTextField( node )
+
+Checks whether the given element is a text field, where text field is defined by the ability to select within the input, or that it is contenteditable.
+
+<ParamField path="node" type="Node" required>
+  The HTML element.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if the element is a text field, false if not.
+</ResponseField>
+
+```js
+import { isTextField } from '@wordpress/dom';
+
+if ( isTextField( event.target ) ) {
+	console.log( 'User is typing in a text field' );
+}
+```
+
+### isNumberInput( node )
+
+Checks whether the given element is an input field of type number.
+
+<ParamField path="node" type="Node" required>
+  The HTML node.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if the node is number input.
+</ResponseField>
+
+## Content Type Utilities
+
+### isPhrasingContent( node )
+
+Finds out whether or not the given node is phrasing content.
+
+<ParamField path="node" type="Node" required>
+  The node to test.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if phrasing content, false if not.
+</ResponseField>
+
+<Tip>
+See [MDN: Phrasing content](https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Content_categories#Phrasing_content) for more information.
+</Tip>
+
+### isTextContent( node )
+
+Checks if a node is text content.
+
+<ParamField path="node" type="Node" required>
+  The node to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether the node is text content.
+</ResponseField>
+
+### getPhrasingContentSchema( context )
+
+Gets schema of possible paths for phrasing content.
+
+<ParamField path="context" type="string">
+  Set to "paste" to exclude invisible elements and sensitive data.
+</ParamField>
+
+<ResponseField name="return" type="object">
+  Schema object.
+</ResponseField>
+
+## Element Manipulation
+
+### insertAfter( newNode, referenceNode )
+
+Inserts a node in the DOM as the next sibling of another node.
+
+<ParamField path="newNode" type="Node" required>
+  Node to be inserted.
+</ParamField>
+
+<ParamField path="referenceNode" type="Node" required>
+  Node after which to perform the insertion.
+</ParamField>
+
+```js
+import { insertAfter } from '@wordpress/dom';
+
+const newElement = document.createElement( 'div' );
+insertAfter( newElement, referenceElement );
+```
+
+### remove( node )
+
+Removes a node from the DOM.
+
+<ParamField path="node" type="Node" required>
+  Node to be removed.
+</ParamField>
+
+### replace( processedNode, newNode )
+
+Replaces one DOM node with another.
+
+<ParamField path="processedNode" type="Element" required>
+  Node to be removed.
+</ParamField>
+
+<ParamField path="newNode" type="Element" required>
+  Node to be inserted in its place.
+</ParamField>
+
+### replaceTag( node, tagName )
+
+Replaces a node with a new node with the given tag name.
+
+<ParamField path="node" type="Element" required>
+  The node to replace.
+</ParamField>
+
+<ParamField path="tagName" type="string" required>
+  The new tag name.
+</ParamField>
+
+<ResponseField name="return" type="Element">
+  The new node.
+</ResponseField>
+
+### wrap( newNode, referenceNode )
+
+Wraps a node with a new node with the given tag name.
+
+<ParamField path="newNode" type="Element" required>
+  The node to insert.
+</ParamField>
+
+<ParamField path="referenceNode" type="Element" required>
+  The node to wrap.
+</ParamField>
+
+### unwrap( node )
+
+Unwraps the given node, moving any child nodes to the parent.
+
+<ParamField path="node" type="Node" required>
+  The node to unwrap.
+</ParamField>
+
+```js
+import { unwrap } from '@wordpress/dom';
+
+// <div><span>Hello</span></div>
+// After unwrap(span):
+// <div>Hello</div>
+unwrap( spanElement );
+```
+
+### isEmpty( element )
+
+Recursively checks if an element is empty. An element is not empty if it contains text or elements with attributes such as images.
+
+<ParamField path="element" type="Element" required>
+  The element to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether or not the element is empty.
+</ResponseField>
+
+## Layout Utilities
+
+### getOffsetParent( node )
+
+Returns the closest positioned element, or null under any of the conditions of the offsetParent specification. Unlike offsetParent, this function accepts any Node (e.g., Node.TEXT_NODE).
+
+<ParamField path="node" type="Node" required>
+  Node from which to find offset parent.
+</ParamField>
+
+<ResponseField name="return" type="Node | null">
+  Offset parent.
+</ResponseField>
+
+### getScrollContainer( node, direction )
+
+Finds the closest scrollable container node or the node itself, if scrollable.
+
+<ParamField path="node" type="Element | null" required>
+  Node from which to start.
+</ParamField>
+
+<ParamField path="direction" type="string" default="vertical">
+  Direction of scrollable container to search for ('vertical', 'horizontal', 'all').
+</ParamField>
+
+<ResponseField name="return" type="Element | undefined">
+  Scrollable container node, if found.
+</ResponseField>
+
+```js
+import { getScrollContainer } from '@wordpress/dom';
+
+const scrollParent = getScrollContainer( element, 'vertical' );
+if ( scrollParent ) {
+	scrollParent.scrollTop = 0;
+}
+```
+
+### isRTL( element )
+
+Checks whether the element's text direction is right-to-left.
+
+<ParamField path="element" type="Element" required>
+  The element to check.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if rtl, false if ltr.
+</ResponseField>
+
+## HTML Sanitization
+
+### safeHTML( html )
+
+Strips scripts and on* attributes from HTML.
+
+<ParamField path="html" type="string" required>
+  HTML to sanitize.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The sanitized HTML.
+</ResponseField>
+
+```js
+import { safeHTML } from '@wordpress/dom';
+
+const unsafe = '<div onclick="alert(1)">Click me</div>';
+const safe = safeHTML( unsafe );
+// Result: '<div>Click me</div>'
+```
+
+### removeInvalidHTML( HTML, schema, inline )
+
+Cleans up HTML by removing or unwrapping nodes, attributes, and classes based on a schema.
+
+<ParamField path="HTML" type="string" required>
+  The HTML to clean up.
+</ParamField>
+
+<ParamField path="schema" type="object" required>
+  Schema for the HTML.
+</ParamField>
+
+<ParamField path="inline" type="boolean" required>
+  Whether to clean for inline mode.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The cleaned up HTML.
+</ResponseField>
+
+## File Handling
+
+### getFilesFromDataTransfer( dataTransfer )
+
+Gets all files from a DataTransfer object.
+
+<ParamField path="dataTransfer" type="DataTransfer" required>
+  DataTransfer object to inspect.
+</ParamField>
+
+<ResponseField name="return" type="File[]">
+  An array containing all files.
+</ResponseField>
+
+```js
+import { getFilesFromDataTransfer } from '@wordpress/dom';
+
+element.addEventListener( 'drop', ( event ) => {
+	const files = getFilesFromDataTransfer( event.dataTransfer );
+	console.log( `Dropped ${files.length} files` );
+} );
+```
+
+## Focus Management
+
+### focus
+
+Object grouping `focusable` and `tabbable` utilities under the keys with the same name.
+
+```js
+import { focus } from '@wordpress/dom';
+
+// Find all focusable elements
+const focusableElements = focus.focusable.find( container );
+
+// Find all tabbable elements
+const tabbableElements = focus.tabbable.find( container );
+```
+
+<Tip>
+Focusable elements are elements that can receive focus, while tabbable elements are focusable elements that can be reached using the Tab key.
+</Tip>
+
+## Complete Example
+
+<CodeGroup>
+
+```js Selection Example
+import { 
+	documentHasSelection, 
+	placeCaretAtHorizontalEdge 
+} from '@wordpress/dom';
+
+function handleKeyDown( event ) {
+	const { target, keyCode } = event;
+	
+	if ( keyCode === 37 ) { // Left arrow
+		if ( ! documentHasSelection( document ) ) {
+			// Move to previous block
+			const previousBlock = getPreviousBlock();
+			if ( previousBlock ) {
+				placeCaretAtHorizontalEdge( previousBlock, true );
+			}
+		}
+	}
+}
+```
+
+```js Element Manipulation
+import { 
+	isTextField,
+	wrap,
+	unwrap,
+	safeHTML 
+} from '@wordpress/dom';
+
+// Check if element is a text field
+if ( isTextField( element ) ) {
+	console.log( 'This is a text input' );
+}
+
+// Wrap an element
+const wrapper = document.createElement( 'div' );
+wrap( wrapper, targetElement );
+
+// Sanitize HTML
+const clean = safeHTML( userProvidedHTML );
+```
+
+</CodeGroup>
+
+## Version
+
+Current version: **4.40.0**
+
+## Links
+
+- [GitHub Repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/dom)
+- [npm Package](https://www.npmjs.com/package/@wordpress/dom)

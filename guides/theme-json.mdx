@@ -1,0 +1,400 @@
+---
+title: Theme.json Configuration
+description: Learn how to configure the WordPress Block Editor using the theme.json system for global settings and styles.
+---
+
+The `theme.json` file is a powerful configuration tool that controls the WordPress Block Editor's behavior, appearance, and available features. You can use it to define global settings, customize block supports, and create a cohesive design system for your theme.
+
+## What is theme.json?
+
+Theme.json is a JSON configuration file that allows you to:
+
+- Control which editor features are available to users
+- Define global design tokens (colors, typography, spacing)
+- Configure block-level settings and styles
+- Create a consistent design system across your site
+
+## Schema Structure
+
+The theme.json file follows a versioned schema. Here's the basic structure:
+
+```json
+{
+  "version": 3,
+  "settings": {
+    // Global settings
+  },
+  "styles": {
+    // Global styles
+  }
+}
+```
+
+<Note>
+Always use `"version": 3` for the latest schema. This ensures you have access to all current features.
+</Note>
+
+## Settings Configuration
+
+### Color Settings
+
+You can define a custom color palette and control color-related features:
+
+<CodeGroup>
+```json Basic Color Palette
+{
+  "version": 3,
+  "settings": {
+    "color": {
+      "palette": [
+        {
+          "slug": "primary",
+          "color": "#007cba",
+          "name": "Primary"
+        },
+        {
+          "slug": "secondary",
+          "color": "#ff5837",
+          "name": "Secondary"
+        }
+      ],
+      "custom": true,
+      "customDuotone": true,
+      "customGradient": true,
+      "defaultPalette": false
+    }
+  }
+}
+```
+
+```json Disable Color Features
+{
+  "version": 3,
+  "settings": {
+    "color": {
+      "background": false,
+      "text": false,
+      "custom": false,
+      "customDuotone": false,
+      "customGradient": false,
+      "defaultPalette": false
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Typography Settings
+
+Define font families, sizes, and typography controls:
+
+```json
+{
+  "version": 3,
+  "settings": {
+    "typography": {
+      "fontFamilies": [
+        {
+          "fontFamily": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto",
+          "slug": "system",
+          "name": "System Font"
+        }
+      ],
+      "fontSizes": [
+        {
+          "slug": "small",
+          "size": "0.875rem",
+          "name": "Small"
+        },
+        {
+          "slug": "medium",
+          "size": "1rem",
+          "name": "Medium"
+        },
+        {
+          "slug": "large",
+          "size": "1.5rem",
+          "name": "Large"
+        }
+      ],
+      "customFontSize": true,
+      "lineHeight": true,
+      "letterSpacing": true
+    }
+  }
+}
+```
+
+### Layout Settings
+
+Control the default content width and layout options:
+
+```json
+{
+  "version": 3,
+  "settings": {
+    "layout": {
+      "contentSize": "750px",
+      "wideSize": "1200px"
+    }
+  }
+}
+```
+
+<Warning>
+To disable the "Inherit default layout" setting for container blocks like the Group block, remove or set `contentSize` and `wideSize` to `null`.
+</Warning>
+
+## Block-Level Settings
+
+You can configure settings for specific blocks using the `blocks` key:
+
+<Tabs>
+  <Tab title="Customize Specific Block">
+    ```json
+    {
+      "version": 3,
+      "settings": {
+        "color": {
+          "customDuotone": false
+        },
+        "blocks": {
+          "core/post-featured-image": {
+            "color": {
+              "duotone": [
+                {
+                  "colors": ["#282828", "#ff5837"],
+                  "slug": "black-and-orange",
+                  "name": "Black and Orange"
+                }
+              ],
+              "customDuotone": true,
+              "custom": true
+            }
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Restrict Block Features">
+    ```json
+    {
+      "version": 3,
+      "settings": {
+        "blocks": {
+          "core/heading": {
+            "color": {
+              "background": false,
+              "text": true
+            },
+            "typography": {
+              "fontSizes": [
+                {
+                  "slug": "heading-small",
+                  "size": "1.5rem",
+                  "name": "Small"
+                },
+                {
+                  "slug": "heading-large",
+                  "size": "3rem",
+                  "name": "Large"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Limiting Editor Features
+
+You can create a highly restricted editing experience by disabling most features:
+
+```json
+{
+  "version": 3,
+  "settings": {
+    "layout": {
+      "contentSize": "750px"
+    },
+    "color": {
+      "background": false,
+      "custom": false,
+      "customDuotone": false,
+      "customGradient": false,
+      "defaultGradients": false,
+      "defaultPalette": false,
+      "text": false
+    },
+    "typography": {
+      "customFontSize": false,
+      "dropCap": false,
+      "fontStyle": false,
+      "fontWeight": false,
+      "letterSpacing": false,
+      "lineHeight": false,
+      "textDecoration": false,
+      "textTransform": false
+    }
+  }
+}
+```
+
+## Styles Configuration
+
+Define global and block-specific styles:
+
+```json
+{
+  "version": 3,
+  "styles": {
+    "color": {
+      "background": "#ffffff",
+      "text": "#000000"
+    },
+    "typography": {
+      "fontSize": "1rem",
+      "lineHeight": "1.6"
+    },
+    "elements": {
+      "link": {
+        "color": {
+          "text": "#007cba"
+        },
+        ":hover": {
+          "color": {
+            "text": "#005a87"
+          }
+        }
+      },
+      "h1": {
+        "typography": {
+          "fontSize": "2.5rem",
+          "lineHeight": "1.2"
+        }
+      }
+    },
+    "blocks": {
+      "core/button": {
+        "color": {
+          "background": "#007cba",
+          "text": "#ffffff"
+        },
+        "border": {
+          "radius": "4px"
+        }
+      }
+    }
+  }
+}
+```
+
+## CSS Custom Properties
+
+Theme.json automatically generates CSS custom properties from your presets:
+
+```json
+{
+  "settings": {
+    "color": {
+      "palette": [
+        {
+          "slug": "primary",
+          "color": "#007cba",
+          "name": "Primary"
+        }
+      ]
+    }
+  }
+}
+```
+
+This generates the following CSS:
+
+```css
+:root {
+  --wp--preset--color--primary: #007cba;
+}
+
+.has-primary-color {
+  color: var(--wp--preset--color--primary);
+}
+
+.has-primary-background-color {
+  background-color: var(--wp--preset--color--primary);
+}
+```
+
+## Common Use Cases
+
+### Curating the Editor Experience
+
+Restrict editor features while maintaining design consistency:
+
+```json
+{
+  "version": 3,
+  "settings": {
+    "color": {
+      "palette": [
+        {"slug": "primary", "color": "#007cba", "name": "Primary"},
+        {"slug": "secondary", "color": "#ff5837", "name": "Secondary"}
+      ],
+      "custom": false,
+      "defaultPalette": false
+    },
+    "blocks": {
+      "core/paragraph": {
+        "color": {
+          "background": false
+        }
+      }
+    }
+  }
+}
+```
+
+### Duotone Configuration
+
+Provide predefined duotone filters:
+
+```json
+{
+  "version": 3,
+  "settings": {
+    "color": {
+      "duotone": [
+        {
+          "colors": ["#000000", "#ffffff"],
+          "slug": "foreground-and-background",
+          "name": "Foreground and background"
+        },
+        {
+          "colors": ["#000000", "#7f5dee"],
+          "slug": "foreground-and-tertiary",
+          "name": "Foreground and tertiary"
+        }
+      ],
+      "customDuotone": true
+    }
+  }
+}
+```
+
+## Best Practices
+
+1. **Start with a minimal configuration**: Only define what you need to override
+2. **Use meaningful slug names**: Make them descriptive for better developer experience
+3. **Test across blocks**: Verify your settings work as expected across different block types
+4. **Document your choices**: Add comments (in your theme documentation) explaining why certain features are disabled
+5. **Consider accessibility**: Ensure your color combinations meet WCAG contrast requirements
+
+## Next Steps
+
+- Learn about [Server-side theme.json Filters](/guides/filters-and-hooks#server-side-themejson-filters)
+- Explore [Editor Customization](/guides/editor-customization) techniques
+- Read the [theme.json reference documentation](https://developer.wordpress.org/block-editor/reference-guides/theme-json-reference/)

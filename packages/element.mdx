@@ -1,0 +1,393 @@
+---
+title: '@wordpress/element'
+description: 'React abstraction layer for WordPress'
+---
+
+The `@wordpress/element` package is a React abstraction layer that provides utilities to work with React components and elements. It re-exports React's core functionality while adding WordPress-specific enhancements.
+
+## Installation
+
+Install the package using npm:
+
+```bash
+npm install @wordpress/element --save
+```
+
+<Note>
+This package assumes that your code will run in an **ES2015+** environment. If you're using an environment with limited support for such language features, include the polyfill shipped in `@wordpress/babel-preset-default`.
+</Note>
+
+## Why React?
+
+The choice to use React is motivated by the technical requirements of the block system:
+
+- Understanding a block in terms of its underlying values
+- Describing the UI of a block given these values
+
+React provides a simple input/output mechanism: **given a set of inputs ("props"), you describe the output to be shown on the page.** This is elegantly observed in function components:
+
+```jsx
+import { createElement } from '@wordpress/element';
+
+function MyBlock( { content } ) {
+	return <div className="my-block">{ content }</div>;
+}
+```
+
+React serves the role of reconciling the desired output with the current state of the page, handling updates efficiently.
+
+## Basic Usage
+
+You can import React functionality directly from `@wordpress/element`:
+
+```jsx
+import { useState, useEffect } from '@wordpress/element';
+
+function Counter() {
+	const [ count, setCount ] = useState( 0 );
+	
+	useEffect( () => {
+		console.log( 'Count changed:', count );
+	}, [ count ] );
+	
+	return (
+		<div>
+			<p>Count: { count }</p>
+			<button onClick={ () => setCount( count + 1 ) }>
+				Increment
+			</button>
+		</div>
+	);
+}
+```
+
+## Core React APIs
+
+### Component Creation
+
+<CardGroup cols={2}>
+
+<Card title="createElement" icon="code">
+Create React elements from components or tags
+</Card>
+
+<Card title="Component" icon="cube">
+Base class for creating class components
+</Card>
+
+<Card title="Fragment" icon="layer-group">
+Group children without adding extra DOM nodes
+</Card>
+
+<Card title="forwardRef" icon="arrow-right">
+Pass refs to child components
+</Card>
+
+</CardGroup>
+
+### React Hooks
+
+All standard React hooks are available:
+
+```jsx
+import {
+	useState,
+	useEffect,
+	useContext,
+	useReducer,
+	useCallback,
+	useMemo,
+	useRef,
+	useLayoutEffect,
+	useId,
+	useTransition,
+	useDeferredValue,
+	useSyncExternalStore
+} from '@wordpress/element';
+```
+
+## WordPress-Specific Utilities
+
+### createInterpolateElement
+
+Create interpolated elements from strings with specific tags:
+
+```jsx
+import { createInterpolateElement } from '@wordpress/element';
+
+const text = 'This is a <strong>bold</strong> text with <link>a link</link>.';
+
+const element = createInterpolateElement(
+	text,
+	{
+		strong: <strong />,
+		link: <a href="https://wordpress.org" />
+	}
+);
+
+// Renders: This is a <strong>bold</strong> text with <a href="https://wordpress.org">a link</a>.
+```
+
+### RawHTML
+
+Render unescaped HTML safely:
+
+```jsx
+import { RawHTML } from '@wordpress/element';
+
+function MyComponent() {
+	const htmlContent = '<h3>Hello world</h3><p>This is HTML content</p>';
+	
+	return (
+		<RawHTML>{ htmlContent }</RawHTML>
+	);
+}
+```
+
+<Note>
+The wrapper `div` is removed during block saving unless non-children props are present.
+</Note>
+
+### Platform
+
+Detect the current platform (useful for cross-platform code):
+
+```jsx
+import { Platform } from '@wordpress/element';
+
+const placeholderLabel = Platform.select( {
+	native: 'Add media',
+	web: 'Drag images, upload new ones or select files from your library.'
+} );
+
+// Check platform
+if ( Platform.OS === 'web' ) {
+	// Web-specific code
+}
+```
+
+## Working with Refs
+
+### createRef
+
+Create a ref object:
+
+```jsx
+import { createRef, Component } from '@wordpress/element';
+
+class MyComponent extends Component {
+	constructor( props ) {
+		super( props );
+		this.inputRef = createRef();
+	}
+	
+	componentDidMount() {
+		this.inputRef.current.focus();
+	}
+	
+	render() {
+		return <input ref={ this.inputRef } />;
+	}
+}
+```
+
+### useRef Hook
+
+For function components, use the `useRef` hook:
+
+```jsx
+import { useRef, useEffect } from '@wordpress/element';
+
+function MyComponent() {
+	const inputRef = useRef();
+	
+	useEffect( () => {
+		inputRef.current.focus();
+	}, [] );
+	
+	return <input ref={ inputRef } />;
+}
+```
+
+## Rendering Components
+
+### createRoot (React 18+)
+
+Create a root to render your app:
+
+```jsx
+import { createRoot } from '@wordpress/element';
+
+const root = createRoot( document.getElementById( 'root' ) );
+root.render( <App /> );
+```
+
+### hydrateRoot
+
+Hydrate server-rendered markup:
+
+```jsx
+import { hydrateRoot } from '@wordpress/element';
+
+const root = hydrateRoot(
+	document.getElementById( 'root' ),
+	<App />
+);
+```
+
+## Advanced APIs
+
+### createPortal
+
+Render children into a different part of the DOM:
+
+```jsx
+import { createPortal, useState } from '@wordpress/element';
+
+function Modal( { children } ) {
+	const modalRoot = document.getElementById( 'modal-root' );
+	
+	return createPortal(
+		<div className="modal">{ children }</div>,
+		modalRoot
+	);
+}
+```
+
+### Suspense and Lazy Loading
+
+Lazy load components:
+
+```jsx
+import { lazy, Suspense } from '@wordpress/element';
+
+const HeavyComponent = lazy( () => import( './HeavyComponent' ) );
+
+function App() {
+	return (
+		<Suspense fallback={ <div>Loading...</div> }>
+			<HeavyComponent />
+		</Suspense>
+	);
+}
+```
+
+### flushSync
+
+Force synchronous updates:
+
+```jsx
+import { flushSync, useState } from '@wordpress/element';
+
+function MyComponent() {
+	const [ count, setCount ] = useState( 0 );
+	
+	const handleClick = () => {
+		flushSync( () => {
+			setCount( count + 1 );
+		} );
+		// DOM is updated synchronously at this point
+		console.log( document.getElementById( 'count' ).textContent );
+	};
+	
+	return (
+		<div>
+			<span id="count">{ count }</span>
+			<button onClick={ handleClick }>Update</button>
+		</div>
+	);
+}
+```
+
+## Utility Functions
+
+### isValidElement
+
+Check if an object is a valid React element:
+
+```jsx
+import { isValidElement } from '@wordpress/element';
+
+const element = <div>Hello</div>;
+console.log( isValidElement( element ) ); // true
+console.log( isValidElement( 'hello' ) ); // false
+```
+
+### cloneElement
+
+Clone an element with new props:
+
+```jsx
+import { cloneElement } from '@wordpress/element';
+
+const originalElement = <button>Click me</button>;
+const clonedElement = cloneElement(
+	originalElement,
+	{ className: 'primary', onClick: handleClick }
+);
+```
+
+### Children Utilities
+
+Work with children:
+
+```jsx
+import { Children } from '@wordpress/element';
+
+function List( { children } ) {
+	const items = Children.map( children, ( child, index ) => (
+		cloneElement( child, { key: index } )
+	) );
+	
+	return <ul>{ items }</ul>;
+}
+```
+
+## StrictMode
+
+Enable strict mode for development checks:
+
+```jsx
+import { StrictMode } from '@wordpress/element';
+
+function App() {
+	return (
+		<StrictMode>
+			<MyComponent />
+		</StrictMode>
+	);
+}
+```
+
+## Package Details
+
+<Note>
+This package bundles React directly and requires no additional peer dependencies. It currently includes React 18.3.0.
+</Note>
+
+<CodeGroup>
+
+```json package.json
+{
+	"name": "@wordpress/element",
+	"version": "6.40.0",
+	"dependencies": {
+		"react": "^18.3.0",
+		"react-dom": "^18.3.0"
+	}
+}
+```
+
+</CodeGroup>
+
+## Related Packages
+
+- [`@wordpress/components`](/packages/components) - UI components built with this package
+- [`@wordpress/compose`](/packages/compose) - Hooks and HOCs for React
+- [`@wordpress/data`](/packages/data) - State management layer
+
+## External Resources
+
+- [React Documentation](https://react.dev/) - Official React docs
+- [React Hooks Reference](https://react.dev/reference/react/hooks) - Complete hooks API
+- [React Components Reference](https://react.dev/reference/react/Component) - Class components API

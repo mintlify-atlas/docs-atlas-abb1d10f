@@ -1,0 +1,516 @@
+---
+title: Block Patterns
+description: Create and register predefined block layouts that users can insert and customize
+---
+
+Block Patterns are predefined block layouts that appear in the patterns tab of the block inserter. They provide users with ready-made designs they can insert and customize.
+
+## What are Block Patterns?
+
+Patterns combine multiple blocks into reusable layouts. Once inserted, the blocks become regular editable blocks that users can modify.
+
+<Note>
+Unlike reusable blocks, patterns are not linked to their original definition. Changes to a pattern don't affect previously inserted instances.
+</Note>
+
+## Registering Patterns (PHP)
+
+Register patterns using the `register_block_pattern` function:
+
+### register_block_pattern
+
+<ParamField path="pattern_name" type="string" required>
+  Machine-readable name with format `namespace/pattern-name`
+</ParamField>
+
+<ParamField path="pattern_properties" type="array" required>
+  Array of pattern properties
+</ParamField>
+
+### Pattern Properties
+
+<ParamField path="title" type="string" required>
+  Human-readable title displayed in the inserter
+</ParamField>
+
+<ParamField path="content" type="string" required>
+  Block HTML markup for the pattern
+</ParamField>
+
+<ParamField path="description" type="string">
+  Visually hidden text describing the pattern (helpful for search)
+</ParamField>
+
+<ParamField path="categories" type="array">
+  Array of registered pattern category slugs
+</ParamField>
+
+<ParamField path="keywords" type="array">
+  Search keywords to help users discover the pattern
+</ParamField>
+
+<ParamField path="viewportWidth" type="integer">
+  Intended width for scaled preview in the inserter
+</ParamField>
+
+<ParamField path="blockTypes" type="array">
+  Block types this pattern is intended for (enables pattern transforms)
+</ParamField>
+
+<ParamField path="postTypes" type="array">
+  Post types where this pattern is available
+</ParamField>
+
+<ParamField path="templateTypes" type="array">
+  Template types where the pattern makes sense (e.g., `404`, `single-post`)
+</ParamField>
+
+<ParamField path="inserter" type="boolean" default="true">
+  Whether to show in the inserter (set to false for programmatic use only)
+</ParamField>
+
+<ParamField path="source" type="string">
+  Source of the pattern: `plugin` or `theme`
+</ParamField>
+
+## Basic Pattern Example
+
+```php
+function my_plugin_register_patterns() {
+    register_block_pattern(
+        'my-plugin/two-buttons',
+        array(
+            'title'       => __( 'Two Buttons', 'my-plugin' ),
+            'description' => _x(
+                'Two horizontal buttons, the left button is filled in, and the right button is outlined.',
+                'Block pattern description',
+                'my-plugin'
+            ),
+            'categories'  => array( 'buttons' ),
+            'keywords'    => array( 'cta', 'call to action' ),
+            'content'     => '
+                <!-- wp:buttons {"align":"center"} -->
+                <div class="wp-block-buttons aligncenter">
+                    <!-- wp:button {"backgroundColor":"primary"} -->
+                    <div class="wp-block-button">
+                        <a class="wp-block-button__link has-primary-background-color has-background">' .
+                            esc_html__( 'Primary Action', 'my-plugin' ) .
+                        '</a>
+                    </div>
+                    <!-- /wp:button -->
+
+                    <!-- wp:button {"className":"is-style-outline"} -->
+                    <div class="wp-block-button is-style-outline">
+                        <a class="wp-block-button__link">' .
+                            esc_html__( 'Secondary Action', 'my-plugin' ) .
+                        '</a>
+                    </div>
+                    <!-- /wp:button -->
+                </div>
+                <!-- /wp:buttons -->
+            ',
+        )
+    );
+}
+add_action( 'init', 'my_plugin_register_patterns' );
+```
+
+## Pattern with Multiple Blocks
+
+```php
+register_block_pattern(
+    'my-plugin/hero-section',
+    array(
+        'title'          => __( 'Hero Section', 'my-plugin' ),
+        'description'    => __( 'Large hero section with heading and call-to-action', 'my-plugin' ),
+        'categories'     => array( 'featured', 'header' ),
+        'viewportWidth'  => 1280,
+        'content'        => '
+            <!-- wp:group {"align":"full","style":{"spacing":{"padding":{"top":"6rem","bottom":"6rem"}}}} -->
+            <div class="wp-block-group alignfull" style="padding-top:6rem;padding-bottom:6rem">
+                <!-- wp:heading {"textAlign":"center","level":1,"fontSize":"huge"} -->
+                <h1 class="has-text-align-center has-huge-font-size">' .
+                    esc_html__( 'Welcome to Our Site', 'my-plugin' ) .
+                '</h1>
+                <!-- /wp:heading -->
+
+                <!-- wp:paragraph {"align":"center","fontSize":"large"} -->
+                <p class="has-text-align-center has-large-font-size">' .
+                    esc_html__( 'Discover amazing content and features', 'my-plugin' ) .
+                '</p>
+                <!-- /wp:paragraph -->
+
+                <!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->
+                <div class="wp-block-buttons">
+                    <!-- wp:button -->
+                    <div class="wp-block-button">
+                        <a class="wp-block-button__link">' .
+                            esc_html__( 'Get Started', 'my-plugin' ) .
+                        '</a>
+                    </div>
+                    <!-- /wp:button -->
+                </div>
+                <!-- /wp:buttons -->
+            </div>
+            <!-- /wp:group -->
+        ',
+    )
+);
+```
+
+## Pattern Categories
+
+Register custom pattern categories:
+
+### register_block_pattern_category
+
+<ParamField path="category_slug" type="string" required>
+  Machine-readable category identifier
+</ParamField>
+
+<ParamField path="category_properties" type="array" required>
+  Array with category properties
+</ParamField>
+
+```php
+function my_plugin_register_pattern_categories() {
+    register_block_pattern_category(
+        'hero',
+        array( 'label' => __( 'Hero Sections', 'my-plugin' ) )
+    );
+
+    register_block_pattern_category(
+        'testimonials',
+        array( 'label' => __( 'Testimonials', 'my-plugin' ) )
+    );
+}
+add_action( 'init', 'my_plugin_register_pattern_categories' );
+```
+
+<Note>
+The category will only appear in the patterns tab if at least one pattern is assigned to it.
+</Note>
+
+### Core Pattern Categories
+
+- `featured`
+- `text`
+- `gallery`
+- `call-to-action`
+- `banner`
+- `header`
+- `footer`
+- `posts`
+- `buttons`
+
+## Contextual Patterns (Pattern Transforms)
+
+Attach patterns to specific block types to enable pattern transformations:
+
+```php
+register_block_pattern(
+    'my-plugin/styled-paragraph',
+    array(
+        'title'      => __( 'Styled Paragraph', 'my-plugin' ),
+        'blockTypes' => array( 'core/paragraph' ),
+        'content'    => '
+            <!-- wp:paragraph {"backgroundColor":"primary","textColor":"white"} -->
+            <p class="has-white-color has-primary-background-color has-text-color has-background">
+                ' . esc_html__( 'Highlighted text', 'my-plugin' ) . '
+            </p>
+            <!-- /wp:paragraph -->
+        ',
+    )
+);
+```
+
+This pattern will:
+1. Appear in the paragraph block's transform menu
+2. Keep the paragraph's existing content
+3. Apply the pattern's styling attributes
+
+### Multi-Block Patterns
+
+Patterns can target multiple block types:
+
+```php
+register_block_pattern(
+    'my-plugin/heading-with-paragraph',
+    array(
+        'title'      => __( 'Heading with Paragraph', 'my-plugin' ),
+        'blockTypes' => array( 'core/paragraph', 'core/heading' ),
+        'content'    => '
+            <!-- wp:group -->
+            <div class="wp-block-group">
+                <!-- wp:heading {"fontSize":"large"} -->
+                <h2 class="has-large-font-size">
+                    <span style="color:#ba0c49" class="has-inline-color">' .
+                        esc_html__( 'Welcome', 'my-plugin' ) .
+                    '</span>
+                </h2>
+                <!-- /wp:heading -->
+
+                <!-- wp:paragraph {"backgroundColor":"light-gray"} -->
+                <p class="has-light-gray-background-color has-background">' .
+                    esc_html__( 'Description text', 'my-plugin' ) .
+                '</p>
+                <!-- /wp:paragraph -->
+            </div>
+            <!-- /wp:group -->
+        ',
+    )
+);
+```
+
+## Semantic Block Patterns
+
+For block themes, mark patterns as template part areas:
+
+```php
+register_block_pattern(
+    'my-theme/header',
+    array(
+        'title'      => __( 'My Header', 'my-theme' ),
+        'categories' => array( 'header' ),
+        'blockTypes' => array( 'core/template-part/header' ),
+        'content'    => '
+            <!-- wp:group {"align":"full"} -->
+            <div class="wp-block-group alignfull">
+                <!-- wp:site-logo /-->
+                <!-- wp:navigation /-->
+            </div>
+            <!-- /wp:group -->
+        ',
+    )
+);
+```
+
+Similarly for footers:
+
+```php
+register_block_pattern(
+    'my-theme/footer',
+    array(
+        'title'      => __( 'My Footer', 'my-theme' ),
+        'categories' => array( 'footer' ),
+        'blockTypes' => array( 'core/template-part/footer' ),
+        'content'    => '
+            <!-- wp:group {"align":"full"} -->
+            <div class="wp-block-group alignfull">
+                <!-- wp:paragraph {"align":"center"} -->
+                <p class="has-text-align-center">' .
+                    esc_html__( '© 2024 My Site', 'my-theme' ) .
+                '</p>
+                <!-- /wp:paragraph -->
+            </div>
+            <!-- /wp:group -->
+        ',
+    )
+);
+```
+
+## Restricting Patterns by Post Type
+
+```php
+register_block_pattern(
+    'my-plugin/product-layout',
+    array(
+        'title'     => __( 'Product Layout', 'my-plugin' ),
+        'postTypes' => array( 'product' ),  // Only available for products
+        'content'   => '<!-- Product pattern content -->',
+    )
+);
+```
+
+## Restricting by Template Type
+
+```php
+register_block_pattern(
+    'my-theme/404-content',
+    array(
+        'title'         => __( '404 Page Content', 'my-theme' ),
+        'templateTypes' => array( '404' ),  // Only for 404 templates
+        'content'       => '
+            <!-- wp:heading {"textAlign":"center"} -->
+            <h1 class="has-text-align-center">' .
+                esc_html__( 'Page Not Found', 'my-theme' ) .
+            '</h1>
+            <!-- /wp:heading -->
+        ',
+    )
+);
+```
+
+## Hidden Patterns (Programmatic Use)
+
+```php
+register_block_pattern(
+    'my-plugin/default-layout',
+    array(
+        'title'    => __( 'Default Layout', 'my-plugin' ),
+        'inserter' => false,  // Hidden from inserter
+        'content'  => '<!-- Pattern content -->',
+    )
+);
+```
+
+Use programmatically:
+
+```js
+import { createBlock } from '@wordpress/blocks';
+import { parse } from '@wordpress/blocks';
+
+const patternBlocks = parse( '<!-- Pattern content -->' );
+```
+
+## Unregistering Patterns
+
+### unregister_block_pattern
+
+```php
+function my_plugin_unregister_patterns() {
+    unregister_block_pattern( 'core/two-buttons' );
+}
+add_action( 'init', 'my_plugin_unregister_patterns' );
+```
+
+### Unregister Pattern Categories
+
+```php
+function my_plugin_unregister_categories() {
+    unregister_block_pattern_category( 'hero' );
+}
+add_action( 'init', 'my_plugin_unregister_categories' );
+```
+
+## Pattern Examples from Core
+
+### Two Columns Pattern
+
+```php
+register_block_pattern(
+    'my-plugin/two-columns-text',
+    array(
+        'title'      => __( 'Two Columns Text', 'my-plugin' ),
+        'categories' => array( 'text' ),
+        'content'    => '
+            <!-- wp:columns -->
+            <div class="wp-block-columns">
+                <!-- wp:column -->
+                <div class="wp-block-column">
+                    <!-- wp:heading {"level":3} -->
+                    <h3>' . esc_html__( 'Column One', 'my-plugin' ) . '</h3>
+                    <!-- /wp:heading -->
+
+                    <!-- wp:paragraph -->
+                    <p>' . esc_html__( 'Column one content', 'my-plugin' ) . '</p>
+                    <!-- /wp:paragraph -->
+                </div>
+                <!-- /wp:column -->
+
+                <!-- wp:column -->
+                <div class="wp-block-column">
+                    <!-- wp:heading {"level":3} -->
+                    <h3>' . esc_html__( 'Column Two', 'my-plugin' ) . '</h3>
+                    <!-- /wp:heading -->
+
+                    <!-- wp:paragraph -->
+                    <p>' . esc_html__( 'Column two content', 'my-plugin' ) . '</p>
+                    <!-- /wp:paragraph -->
+                </div>
+                <!-- /wp:column -->
+            </div>
+            <!-- /wp:columns -->
+        ',
+    )
+);
+```
+
+### Call to Action Pattern
+
+```php
+register_block_pattern(
+    'my-plugin/cta-box',
+    array(
+        'title'         => __( 'Call to Action Box', 'my-plugin' ),
+        'categories'    => array( 'call-to-action' ),
+        'viewportWidth' => 800,
+        'content'       => '
+            <!-- wp:group {"style":{"spacing":{"padding":{"top":"3rem","right":"3rem","bottom":"3rem","left":"3rem"}},"border":{"radius":"8px"}},"backgroundColor":"primary"} -->
+            <div class="wp-block-group has-primary-background-color has-background" style="border-radius:8px;padding-top:3rem;padding-right:3rem;padding-bottom:3rem;padding-left:3rem">
+                <!-- wp:heading {"textAlign":"center","textColor":"white"} -->
+                <h2 class="has-text-align-center has-white-color has-text-color">' .
+                    esc_html__( 'Ready to Get Started?', 'my-plugin' ) .
+                '</h2>
+                <!-- /wp:heading -->
+
+                <!-- wp:paragraph {"align":"center","textColor":"white"} -->
+                <p class="has-text-align-center has-white-color has-text-color">' .
+                    esc_html__( 'Join thousands of satisfied customers today', 'my-plugin' ) .
+                '</p>
+                <!-- /wp:paragraph -->
+
+                <!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->
+                <div class="wp-block-buttons">
+                    <!-- wp:button {"backgroundColor":"white","textColor":"primary"} -->
+                    <div class="wp-block-button">
+                        <a class="wp-block-button__link has-primary-color has-white-background-color has-text-color has-background">' .
+                            esc_html__( 'Sign Up Now', 'my-plugin' ) .
+                        '</a>
+                    </div>
+                    <!-- /wp:button -->
+                </div>
+                <!-- /wp:buttons -->
+            </div>
+            <!-- /wp:group -->
+        ',
+    )
+);
+```
+
+## Tips for Creating Patterns
+
+<AccordionGroup>
+  <Accordion title="Use real content in examples">
+    Provide meaningful placeholder content that demonstrates the pattern's purpose.
+  </Accordion>
+  
+  <Accordion title="Set appropriate viewport width">
+    Use `viewportWidth` to ensure patterns preview correctly in the inserter.
+  </Accordion>
+  
+  <Accordion title="Include helpful descriptions">
+    Write clear descriptions to help users understand when to use each pattern.
+  </Accordion>
+  
+  <Accordion title="Use semantic categories">
+    Assign patterns to appropriate categories to improve discoverability.
+  </Accordion>
+  
+  <Accordion title="Add relevant keywords">
+    Include search terms that users might type when looking for the pattern.
+  </Accordion>
+  
+  <Accordion title="Test pattern transforms">
+    If using blockTypes, ensure transforms work correctly with user content.
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+1. **Register on init hook**: Always register patterns during the `init` action
+2. **Escape content**: Use `esc_html__()` for translatable text
+3. **Use consistent naming**: Follow `namespace/pattern-name` convention
+4. **Provide translations**: Wrap all user-facing strings in translation functions
+5. **Consider accessibility**: Ensure patterns use semantic HTML and proper heading hierarchy
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Inner Blocks" href="/blocks/inner-blocks">
+    Build blocks that contain other blocks
+  </Card>
+  <Card title="Block API Overview" href="/blocks/block-api">
+    Return to Block API fundamentals
+  </Card>
+</CardGroup>

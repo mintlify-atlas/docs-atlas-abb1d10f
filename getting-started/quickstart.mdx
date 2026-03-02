@@ -1,0 +1,204 @@
+---
+title: Quick Start Guide
+description: Create your first Gutenberg block in minutes with this step-by-step guide
+---
+
+This guide will help you create your first custom WordPress block using the official `@wordpress/create-block` tool. You'll have a working block in just a few minutes.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js** version 20.10.0 or above
+- **npm** version 10.2.3 or above
+- A **WordPress installation** (local or remote)
+
+<Tip>
+Use [Node Version Manager (nvm)](https://github.com/nvm-sh/nvm) to easily manage Node.js versions on your system.
+</Tip>
+
+## Create Your First Block
+
+<Steps>
+  <Step title="Scaffold the Block">
+    Open your terminal and run the `create-block` command with your desired block name:
+
+    ```bash
+    npx @wordpress/create-block@latest my-first-block
+    ```
+
+    This creates a new WordPress plugin with a custom block named `my-first-block`. The command scaffolds all necessary files including:
+    
+    - PHP plugin file
+    - JavaScript source files
+    - Block configuration (`block.json`)
+    - Build configuration
+    - CSS styles
+  </Step>
+
+  <Step title="Navigate to the Plugin Directory">
+    Change into your newly created plugin directory:
+
+    ```bash
+    cd my-first-block
+    ```
+  </Step>
+
+  <Step title="Start the Development Build">
+    Start the development build process with watch mode:
+
+    ```bash
+    npm start
+    ```
+
+    This command runs a continuous build that automatically rebuilds your block whenever you make changes to the source files.
+
+    <Note>
+    The development build includes additional warnings and helpful error messages. For production, use `npm run build` instead.
+    </Note>
+  </Step>
+
+  <Step title="Install the Plugin in WordPress">
+    Copy or symlink the entire plugin folder to your WordPress installation:
+
+    ```bash
+    # If using wp-content/plugins directory
+    cp -r my-first-block /path/to/wordpress/wp-content/plugins/
+
+    # Or create a symbolic link
+    ln -s $(pwd) /path/to/wordpress/wp-content/plugins/my-first-block
+    ```
+
+    Then activate the plugin in your WordPress admin under **Plugins**.
+  </Step>
+
+  <Step title="Use Your Block">
+    Create a new post or page in WordPress and click the block inserter (+). Search for "My First Block" and add it to your content.
+
+    Congratulations! Your custom block is now working.
+  </Step>
+</Steps>
+
+## Understanding the Generated Files
+
+The `create-block` tool generates a complete plugin structure:
+
+```
+my-first-block/
+├── build/              # Compiled production files (generated)
+├── src/                # Source files for development
+│   ├── block.json      # Block metadata and configuration
+│   ├── index.js        # Block registration
+│   ├── edit.js         # Editor component (what you see in admin)
+│   ├── save.js         # Frontend output (what visitors see)
+│   ├── editor.scss     # Editor-only styles
+│   └── style.scss      # Frontend and editor styles
+├── my-first-block.php  # Main plugin file
+├── package.json        # Node dependencies and scripts
+└── readme.txt          # Plugin readme
+```
+
+## Customizing Your Block
+
+Let's make a simple change to see the workflow in action:
+
+<Steps>
+  <Step title="Edit the Block Component">
+    Open `src/edit.js` in your editor and modify the text:
+
+    ```javascript src/edit.js
+    export default function Edit() {
+        return (
+            <p { ...useBlockProps() }>Hello from my custom block!</p>
+        );
+    }
+    ```
+  </Step>
+
+  <Step title="Watch the Auto-Rebuild">
+    If `npm start` is running, your changes are automatically compiled. Check your terminal for confirmation.
+  </Step>
+
+  <Step title="Refresh the Editor">
+    Reload the WordPress block editor to see your changes. The block should now display your updated text.
+  </Step>
+</Steps>
+
+## Using a Custom Namespace
+
+By default, blocks are created with the `create-block` namespace. You should use your own unique namespace:
+
+```bash
+npx @wordpress/create-block@latest my-block --namespace=my-company
+```
+
+This creates a block named `my-company/my-block` instead of `create-block/my-block`.
+
+<Warning>
+Block names must be unique across all plugins and themes. Use a namespace that represents your company or project to avoid conflicts.
+</Warning>
+
+## Available npm Scripts
+
+Your scaffolded plugin includes several useful commands:
+
+<CodeGroup>
+```bash Development Build
+npm start
+```
+
+```bash Production Build
+npm run build
+```
+
+```bash Create Plugin ZIP
+npm run plugin-zip
+```
+
+```bash Lint JavaScript
+npm run lint:js
+```
+
+```bash Format Code
+npm run format
+```
+</CodeGroup>
+
+## Next Steps
+
+Now that you have a working block, explore more advanced topics:
+
+<CardGroup cols={2}>
+  <Card title="Create Your First Block" icon="cube" href="/getting-started/create-first-block">
+    Deep dive tutorial on block development
+  </Card>
+  <Card title="Block Editor Handbook" icon="book" href="https://developer.wordpress.org/block-editor/">
+    Complete documentation and API reference
+  </Card>
+  <Card title="Block Supports API" icon="sliders" href="https://developer.wordpress.org/block-editor/reference-guides/block-api/block-supports/">
+    Add common features to your blocks
+  </Card>
+  <Card title="Development Environment" icon="terminal" href="/getting-started/development-environment">
+    Set up a complete local development environment
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="npm start fails with Python error">
+    The install scripts require Python to be installed. Download and install Python from [python.org](https://www.python.org/) and ensure it's in your system PATH.
+  </Accordion>
+
+  <Accordion title="Block doesn't appear in the inserter">
+    - Ensure the plugin is activated in WordPress
+    - Check that `npm start` or `npm run build` completed successfully
+    - Clear your browser cache and reload the editor
+  </Accordion>
+
+  <Accordion title="Changes not reflecting in the editor">
+    - Verify `npm start` is running and watching for changes
+    - Hard refresh your browser (Ctrl+Shift+R or Cmd+Shift+R)
+    - Check the browser console for JavaScript errors
+  </Accordion>
+</AccordionGroup>

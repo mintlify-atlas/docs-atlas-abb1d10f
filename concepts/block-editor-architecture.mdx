@@ -1,0 +1,327 @@
+---
+title: Block Editor Architecture
+description: Architectural overview of the WordPress Gutenberg Block Editor framework
+---
+
+## Architectural overview
+
+The WordPress block editor is built on a modular, layered architecture that separates concerns and enables reusability. Understanding this architecture is essential for extending and customizing the editor.
+
+<Info>
+The block editor embraces modularity not just for its behavior and output, but in its entire codebase structure. The Gutenberg repository is built from the ground up as several reusable and independent modules called WordPress packages.
+</Info>
+
+## Three-layer editor architecture
+
+The block editor follows a strict layering principle with three distinct packages, each building upon the previous layer:
+
+### Layer 1: `@wordpress/block-editor` (Generic)
+
+The foundation layer provides a **WordPress-agnostic block editor**. This package:
+
+- Implements a generic block editor that operates on an array of block objects
+- Makes no assumptions about how block values are saved
+- Has no awareness or requirement of a WordPress site
+- Can be used independently in any JavaScript application
+- Provides reusable UI components like `BlockList`, `BlockCanvas`, and `BlockInspector`
+
+```js
+import {
+  BlockEditorProvider,
+  BlockCanvas,
+  BlockList,
+} from '@wordpress/block-editor';
+
+function MyEditorComponent() {
+  const [ blocks, updateBlocks ] = useState( [] );
+
+  return (
+    <BlockEditorProvider
+      value={ blocks }
+      onInput={ updateBlocks }
+      onChange={ updateBlocks }
+    >
+      <BlockCanvas height="400px" />
+    </BlockEditorProvider>
+  );
+}
+```
+
+<Note>
+`@wordpress/block-editor` is a WordPress-agnostic package. Never add `core-data` dependencies or direct REST API calls to it.
+</Note>
+
+### Layer 2: `@wordpress/editor` (WordPress-aware)
+
+The middle layer enhances the block editor for **WordPress posts**. This package:
+
+- Utilizes components from `@wordpress/block-editor`
+- Adds awareness of WordPress post concepts
+- Associates loading and saving mechanisms to WordPress posts
+- Provides post-specific components (e.g., post title input)
+- Supports editing any post type
+- Doesn't assume any particular WordPress screen or layout
+
+### Layer 3: `@wordpress/edit-post` and `@wordpress/edit-site` (Full screens)
+
+The top layer implements complete editing screens:
+
+- `@wordpress/edit-post` - The "Edit Post" screen in WordPress admin
+- `@wordpress/edit-site` - The "Site Editor" for full site editing
+- `@wordpress/edit-widgets` - The "Widgets Editor"
+
+These packages:
+- Arrange layout of components from lower layers
+- Provide the complete UI for specific WordPress screens
+- Handle screen-specific features and navigation
+
+<Tip>
+Lower layers MUST NOT depend on higher ones. This enables each layer to be used independently or in different combinations.
+</Tip>
+
+## Package layering rules
+
+The architecture enforces strict dependency rules:
+
+```
+edit-post/edit-site (Full screens)
+       ↓
+   editor (WordPress post-aware)
+       ↓
+block-editor (Generic, WP-agnostic)
+```
+
+**Critical rule**: Lower layers cannot depend on higher layers. This ensures:
+- The generic `block-editor` can be used outside WordPress
+- The `editor` package works with any post type
+- Full screen implementations can be customized independently
+
+## Modularity and WordPress packages
+
+The block editor is composed of many independent packages published to npm as `@wordpress/*` packages:
+
+<Accordion title="Key WordPress packages">
+
+- `@wordpress/blocks` - Block registration and manipulation
+- `@wordpress/block-editor` - Generic block editor components
+- `@wordpress/editor` - WordPress post editor
+- `@wordpress/data` - State management (Redux-like stores)
+- `@wordpress/components` - Reusable UI components
+- `@wordpress/element` - React abstraction
+- `@wordpress/api-fetch` - WordPress REST API client
+- `@wordpress/hooks` - Filters and actions system
+
+</Accordion>
+
+## Why modularity?
+
+Using a modular architecture provides benefits for everyone:
+
+### For Core Contributors
+
+- Each package is an independent unit with a well-defined public API
+- Easier to reason about the codebase
+- Focus on a single package at a time
+- Clear understanding of how changes impact dependent packages
+
+### For End Users
+
+- Selectively load scripts on different WordPress admin pages
+- Smaller bundle sizes - only load what you need
+- Better performance across the WordPress dashboard
+
+### For Third-Party Developers
+
+- Reuse packages inside and outside WordPress
+- Use as npm dependencies or WordPress script dependencies
+- Build custom editors and interfaces
+- Extend WordPress without touching core
+
+## Using packages in WordPress
+
+Packages are available in two contexts:
+
+### As npm packages
+
+```bash
+npm install @wordpress/components
+```
+
+```js
+import { Button } from '@wordpress/components';
+
+function MyApp() {
+  return <Button>Nice looking button</Button>;
+}
+```
+
+### As WordPress scripts
+
+In WordPress, packages are available as scripts with handles following the format `wp-{package-name}`:
+
+```php
+// Register script depending on components and element packages
+wp_register_script(
+  'myscript',
+  'path-to-myscript.js',
+  array( 'wp-components', 'wp-element' )
+);
+```
+
+```js
+// Access via wp global
+const { Button } = wp.components;
+
+function MyApp() {
+  return <Button>Nice looking button</Button>;
+}
+```
+
+<Tip>
+Use `@wordpress/scripts` and `@wordpress/dependency-extraction-webpack-plugin` to automate dependency management.
+</Tip>
+
+## Data stores architecture
+
+Some packages define data stores to handle state. Store names follow the format `core/{package-name}`:
+
+- `core/block-editor` - Block editor state
+- `core/editor` - Post editor state
+- `core/blocks` - Registered blocks
+- `core` (core-data) - WordPress entities and REST API
+
+```js
+import { useSelect } from '@wordpress/data';
+import { store as blockEditorStore } from '@wordpress/block-editor';
+
+function BlockCount() {
+  const count = useSelect(
+    ( select ) => select( blockEditorStore ).getBlockCount(),
+    []
+  );
+  return count;
+}
+```
+
+<Note>
+If you use a package's data store, add the corresponding WordPress script to your dependencies (e.g., `wp-block-editor` for the `core/block-editor` store).
+</Note>
+
+## Block data model
+
+The editor works with blocks as an **in-memory tree structure** during editing:
+
+```js
+const value = [ block1, block2, block3 ];
+```
+
+Blocks are serialized to HTML with comment delimiters for storage:
+
+```html
+<!-- wp:paragraph {"dropCap":true} -->
+<p>Welcome to the world of blocks.</p>
+<!-- /wp:paragraph -->
+```
+
+<Info>
+Work with the block tree via APIs, not the serialized HTML. The serialization format is an implementation detail.
+</Info>
+
+## Data flow lifecycle
+
+The block editor follows this workflow:
+
+1. **Parse**: Saved document → in-memory block tree (using token delimiters)
+2. **Edit**: All manipulations happen within the block tree
+3. **Serialize**: Block tree → `post_content` HTML
+
+![Data Flow Diagram](https://docs.google.com/drawings/d/1iuownt5etcih7rMMvPvh0Mny8zUA1Z28saxjxaWmfJ0/pub?w=1234&h=453)
+
+## Styles system
+
+The editor uses a three-layer merge for styles:
+
+```
+WordPress defaults < theme.json < User preferences
+```
+
+Key principles:
+- Use the Block Supports API for block styling
+- Use CSS custom properties (`--wp--preset--*`)
+- Avoid hardcoded values
+- Configure via `theme.json` for theme-level styles
+
+<Tip>
+The `theme.json` file absorbs configuration aspects usually scattered through various `add_theme_support` calls, simplifying communication with the editor.
+</Tip>
+
+## Package types
+
+### Production packages
+
+Packages that ship in WordPress as JavaScript scripts:
+- Available as npm packages (`@wordpress/components`)
+- Available as WordPress scripts (`wp-components`)
+- Used to build plugins and themes
+
+Some packages include stylesheets:
+- npm: Available in the `build-style` folder
+- WordPress: Enqueue with the same handle (e.g., `wp-components`)
+
+### Development packages
+
+Packages used in development:
+- Linting and formatting tools
+- Build and bundling utilities
+- Testing frameworks
+- Development servers
+
+## Common architectural pitfalls
+
+<Warning>
+Avoid these common mistakes:
+
+- Don't add WordPress-specific code to `@wordpress/block-editor`
+- Don't use private APIs in bundled packages
+- Don't violate the layering principle (lower layers depending on higher layers)
+- Don't manipulate serialized HTML directly—use block tree APIs
+- Don't hardcode styles—use Block Supports and CSS custom properties
+</Warning>
+
+## Editor initialization
+
+Here's how the layers work together:
+
+```js
+import { registerCoreBlocks } from '@wordpress/block-library';
+import { render } from '@wordpress/element';
+import { BlockEditorProvider, BlockList } from '@wordpress/block-editor';
+
+// Register core blocks
+registerCoreBlocks();
+
+// Initialize editor
+function Editor( { blocks, onChange } ) {
+  return (
+    <BlockEditorProvider
+      value={ blocks }
+      onInput={ onChange }
+      onChange={ onChange }
+    >
+      <BlockList />
+    </BlockEditorProvider>
+  );
+}
+
+render(
+  <Editor blocks={ initialBlocks } onChange={ saveBlocks } />,
+  document.getElementById( 'editor' )
+);
+```
+
+## Next steps
+
+- Dive into the [Data Layer](/concepts/data-layer) and state management
+- Explore [Components](/concepts/components) for building UIs
+- Learn about [Extensibility](/concepts/extensibility) options
+- Understand [Blocks](/concepts/blocks) in depth

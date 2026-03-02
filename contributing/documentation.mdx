@@ -1,0 +1,472 @@
+---
+title: Documentation Contributions
+description: How to contribute documentation to the WordPress Gutenberg project
+---
+
+This guide explains how to contribute to Gutenberg's documentation, including the block editor handbook and developer documentation.
+
+## Getting Started
+
+Documentation for Gutenberg consists of markdown files in the `/docs/` directory of the repository and generated documentation from packages. Your contributions help developers understand and work with the block editor.
+
+### Community
+
+<Steps>
+  <Step title="Join Slack">
+    Connect with the documentation community in the `#docs` channel on [Make WordPress Slack](https://make.wordpress.org/chat/) (free to join).
+  </Step>
+  
+  <Step title="Attend Meetings">
+    Weekly documentation team meetings are held on **Tuesdays at 14:00 UTC** in the #docs Slack channel.
+  </Step>
+  
+  <Step title="Follow the Blog">
+    Stay updated with the [Make WordPress Docs blog](https://make.wordpress.org/docs/) for announcements, meeting notes, and documentation priorities.
+  </Step>
+</Steps>
+
+### Find Documentation Issues
+
+Browse [issues with the documentation label](https://github.com/WordPress/gutenberg/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+label%3A%22%5BType%5D+Documentation%22+) to find documentation tasks to work on.
+
+## Documentation Types
+
+Gutenberg has two major sets of documentation:
+
+<CardGroup cols={2}>
+  <Card title="User Documentation" icon="user" href="https://wordpress.org/documentation/article/wordpress-block-editor/">
+    Information for authors publishing posts using the block editor
+  </Card>
+  <Card title="Block Editor Handbook" icon="book" href="https://developer.wordpress.org/block-editor/">
+    Developer documentation for developing, extending, and contributing to Gutenberg
+  </Card>
+</CardGroup>
+
+<Note>
+This guide covers contributing to the **block editor handbook**. For user documentation, follow the docs blog or ask in the #docs Slack channel.
+</Note>
+
+## Documentation Publishing
+
+The block editor handbook is automatically published from the Gutenberg repository:
+
+- Documentation source: `/docs/` directory in [Gutenberg repository](https://github.com/WordPress/gutenberg/)
+- Published to: [Block Editor Handbook](https://developer.wordpress.org/block-editor/)
+- **Publishing frequency**: Every 15 minutes (automated)
+
+## Handbook Structure
+
+The handbook is organized into four functional sections:
+
+<Steps>
+  <Step title="Getting Started Tutorials">
+    Complete lessons that guide learners step-by-step through achieving specific objectives.
+    
+    Example: [Create a Block Tutorial](https://developer.wordpress.org/block-editor/getting-started/create-block/)
+  </Step>
+  
+  <Step title="How-To Guides">
+    Short, focused lessons for completing specific tasks quickly.
+    
+    Example: [How to Add a Button to the Block Toolbar](https://github.com/WordPress/gutenberg/blob/trunk/docs/how-to-guides/format-api.md)
+  </Step>
+  
+  <Step title="Reference Guides">
+    API documentation and purely functional descriptions of components, hooks, and packages.
+  </Step>
+  
+  <Step title="Explanations">
+    Longer documentation focused on learning and understanding concepts, not specific tasks.
+  </Step>
+</Steps>
+
+<Tip>
+This structure is based on [The Documentation System](https://documentation.divio.com/), which explains the needs and functions of each documentation type.
+</Tip>
+
+## Contributing Workflow
+
+### Update an Existing Document
+
+<Steps>
+  <Step title="Clone the Repository">
+    Follow the [Git Workflow guide](https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/code/git-workflow.md) to fork and clone the Gutenberg repository.
+  </Step>
+  
+  <Step title="Create a Branch">
+    Create a new branch for your documentation changes:
+    
+    ```bash
+    git switch -c docs/update-contrib-guide
+    ```
+  </Step>
+  
+  <Step title="Make Changes">
+    Edit the existing markdown file using your preferred editor. Follow the [copy guidelines](#writing-guidelines).
+  </Step>
+  
+  <Step title="Commit Changes">
+    Commit your changes with a descriptive message:
+    
+    ```bash
+    git commit -m "Docs: Update contributing guide with new workflow"
+    ```
+  </Step>
+  
+  <Step title="Create Pull Request">
+    Push your branch and create a pull request with the `[Type] Developer Documentation` label.
+  </Step>
+</Steps>
+
+### Create a New Document
+
+<Note>
+Creating new documentation requires a working JavaScript development environment to build the documentation files.
+</Note>
+
+<Steps>
+  <Step title="Create Markdown File">
+    Create a new `.md` file in the appropriate `/docs/` subdirectory. Use lowercase, dashes for spaces, and `.md` extension.
+    
+    ```bash
+    # Example
+    touch docs/how-to-guides/my-new-guide.md
+    ```
+  </Step>
+  
+  <Step title="Add Content">
+    Write your documentation using markdown notation. **Every document requires one and only one `h1` tag**.
+    
+    ```markdown
+    # My New Guide
+    
+    This guide explains how to...
+    ```
+  </Step>
+  
+  <Step title="Update Table of Contents">
+    Add an entry to [`docs/toc.json`](https://github.com/WordPress/gutenberg/blob/HEAD/docs/toc.json) in the appropriate hierarchy:
+    
+    ```json
+    {
+      "title": "My New Guide",
+      "slug": "my-new-guide",
+      "markdown_source": "../docs/how-to-guides/my-new-guide.md",
+      "parent": "how-to-guides"
+    }
+    ```
+  </Step>
+  
+  <Step title="Build Documentation">
+    Run the documentation build to update `manifest.json`:
+    
+    ```bash
+    npm run docs:build
+    ```
+  </Step>
+  
+  <Step title="Commit All Files">
+    Commit both your new markdown file and the updated `manifest.json`:
+    
+    ```bash
+    git add docs/how-to-guides/my-new-guide.md docs/toc.json docs/manifest.json
+    git commit -m "Docs: Add guide for new feature"
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+If you forget to run `npm run docs:build`, your PR will fail the static analysis check because `manifest.json` will have uncommitted changes.
+</Warning>
+
+## Writing Guidelines
+
+### Using Templates
+
+Use the [how-to guide template](https://raw.githubusercontent.com/WordPress/gutenberg/trunk/docs/contributors/documentation/how-to-guide-template.md) for consistent structure:
+
+1. Copy the markdown from the template
+2. Fill in your content following the structure
+3. See [The Good Docs Project](https://github.com/thegooddocsproject/templates) for additional templates
+
+### Creating Links
+
+Documentation can be browsed in multiple contexts (handbook, GitHub, npm), so use **absolute path links** without the GitHub prefix:
+
+<CodeGroup>
+```markdown Good Examples
+/docs/contributors/code/getting-started.md
+/packages/components/README.md
+/packages/components/src/button/README.md
+```
+
+```markdown Bad Examples
+https://github.com/WordPress/gutenberg/blob/trunk/docs/...
+../getting-started.md
+README.md
+```
+</CodeGroup>
+
+<Note>
+Use the full directory and filename from the repository, not the published URL. The handbook creates short URLs automatically.
+</Note>
+
+### Code Examples
+
+Wrap code examples in triple backticks with a language specifier:
+
+````markdown
+```javascript
+const example = 'Hello World';
+console.log( example );
+```
+````
+
+#### Code Tabs for JSX and Plain JavaScript
+
+Use `codetabs` to show both JSX and plain JavaScript versions:
+
+````markdown
+{% codetabs %}
+{% JSX %}
+```jsx
+import { Button } from '@wordpress/components';
+
+function MyButton() {
+    return <Button variant="primary">Click me</Button>;
+}
+```
+{% Plain %}
+```js
+const { Button } = wp.components;
+
+function MyButton() {
+    return wp.element.createElement(
+        Button,
+        { variant: 'primary' },
+        'Click me'
+    );
+}
+```
+{% end %}
+````
+
+<Tip>
+JSX is the preferred format and should be shown first as the default view. Plain JavaScript is recommended for beginner tutorials or short examples.
+</Tip>
+
+### Callout Notices
+
+Use HTML with `callout callout-LEVEL` classes for notices:
+
+```html
+<div class="callout callout-info">
+This is an **info** callout with markdown support.
+</div>
+
+<div class="callout callout-tip">
+This is a **tip** callout.
+</div>
+
+<div class="callout callout-alert">
+This is an **alert** callout.
+</div>
+
+<div class="callout callout-warning">
+This is a **warning** callout.
+</div>
+```
+
+<Warning>
+In callout notices, links must use HTML `<a href=""></a>` notation. Markdown link transformation is not applied inside callouts.
+</Warning>
+
+### Video Embeds
+
+Videos must be hosted on the [WordPress YouTube channel](https://www.youtube.com/@WordPress) as unlisted videos. Contact the #marketing Slack channel for assistance.
+
+Once uploaded, embed using:
+
+```html
+<iframe 
+  width="960" 
+  height="540" 
+  src="https://www.youtube.com/embed/VIDEO_ID" 
+  title="Video Title" 
+  frameborder="0" 
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+  allowfullscreen="true">
+</iframe>
+```
+
+<Note>
+Videos should have a **16:9 aspect ratio** and be filmed at the highest resolution possible.
+</Note>
+
+## Documenting Packages
+
+Package documentation is auto-generated from README.md files in package roots. For complex packages, you can split documentation into multiple pages:
+
+<Steps>
+  <Step title="Create docs Directory">
+    Create a `docs/` directory in your package:
+    
+    ```bash
+    mkdir packages/my-package/docs
+    ```
+  </Step>
+  
+  <Step title="Add Additional Markdown Files">
+    Create additional `.md` files in the `docs/` directory.
+  </Step>
+  
+  <Step title="Create toc.json">
+    Add a `toc.json` file to define the page hierarchy:
+    
+    ```json
+    [
+      {
+        "title": "Advanced Usage",
+        "slug": "packages-my-package-advanced",
+        "markdown_source": "../packages/my-package/docs/advanced.md",
+        "parent": "packages-my-package"
+      }
+    ]
+    ```
+  </Step>
+</Steps>
+
+<Note>
+Set the `parent` property to nest pages under the main package name in the handbook.
+</Note>
+
+## Editor Configuration
+
+### Visual Studio Code Setup
+
+Configure VS Code to auto-format markdown with Prettier:
+
+```json
+{
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  }
+}
+```
+
+<Tip>
+Create a `.vscode/settings.json` file in the Gutenberg directory for project-specific settings.
+</Tip>
+
+## Git Workflow for Documentation
+
+Documentation follows the same Git workflow as code contributions:
+
+```bash
+# 1. Create a branch
+git switch -c docs/my-documentation-update
+
+# 2. Make changes to markdown files
+# ...
+
+# 3. Build documentation (if adding new files)
+npm run docs:build
+
+# 4. Commit changes
+git commit -m "Docs: Update feature documentation"
+
+# 5. Push to your fork
+git push -u origin docs/my-documentation-update
+
+# 6. Create pull request with [Type] Developer Documentation label
+```
+
+See the complete [Git Workflow guide](https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/code/git-workflow.md) or watch the [video walkthrough](https://wordpress.tv/2020/09/02/marcus-kazmierczak-contribute-developer-documentation-to-gutenberg/).
+
+## Style Guidelines
+
+Follow these documentation standards:
+
+- **Voice**: Use active voice and second person ("you")
+- **Tone**: Be clear, concise, and helpful
+- **Formatting**: Follow the [Copy Guidelines](https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/documentation/copy-guide.md)
+- **Style**: Reference the [WordPress Tone and Voice Guide](https://make.wordpress.org/docs/handbook/documentation-team-handbook/tone-and-voice-guide/)
+
+### Writing Best Practices
+
+<Tip>
+- Focus on the "why" and "what", not just the "how"
+- Use examples to illustrate concepts
+- Keep paragraphs short and scannable
+- Use headings to organize content logically
+- Include code examples that users can copy and test
+</Tip>
+
+## Documentation Resources
+
+### Official Guidelines
+
+- [Copy Guidelines](https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/documentation/copy-guide.md)
+- [Tone and Voice Guide](https://make.wordpress.org/docs/handbook/documentation-team-handbook/tone-and-voice-guide/)
+- [How-to Guide Template](https://raw.githubusercontent.com/WordPress/gutenberg/trunk/docs/contributors/documentation/how-to-guide-template.md)
+
+### External Resources
+
+- [The Documentation System](https://documentation.divio.com/) - Framework for documentation types
+- [The Good Docs Project](https://github.com/thegooddocsproject/templates) - Documentation templates
+- [GitHub Markdown Guide](https://help.github.com/en/github/writing-on-github/creating-and-highlighting-code-blocks)
+
+## Quick Reference
+
+### Common Documentation Tasks
+
+```bash
+# Build all documentation
+npm run docs:build
+
+# Generate API documentation
+npm run docs:api-ref
+
+# Generate component documentation  
+npm run docs:components
+
+# Generate block library documentation
+npm run docs:blocks
+
+# Generate theme.json reference
+npm run docs:theme-ref
+
+# Format markdown files
+npm run format docs/**/*.md
+```
+
+### File Structure
+
+```
+/docs/
+├── getting-started/      # Tutorials
+├── how-to-guides/        # How-to guides
+├── reference-guides/     # API references
+├── explanations/         # Conceptual documentation
+├── contributors/         # Contributing guides
+├── toc.json             # Table of contents
+└── manifest.json        # Generated navigation (auto-updated)
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Browse Documentation Issues" icon="list" href="https://github.com/WordPress/gutenberg/issues?q=is%3Aopen+is%3Aissue+label%3A%22%5BType%5D+Documentation%22">
+    Find documentation tasks to work on
+  </Card>
+  <Card title="Git Workflow" icon="code-branch" href="https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/code/git-workflow.md">
+    Learn the Git workflow for contributions
+  </Card>
+  <Card title="Watch Tutorial" icon="video" href="https://wordpress.tv/2020/09/02/marcus-kazmierczak-contribute-developer-documentation-to-gutenberg/">
+    Video walkthrough of contributing documentation
+  </Card>
+  <Card title="Copy Guidelines" icon="pen" href="https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/documentation/copy-guide.md">
+    Review writing style guidelines
+  </Card>
+</CardGroup>

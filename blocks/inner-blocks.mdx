@@ -1,0 +1,650 @@
+---
+title: Inner Blocks and Nesting
+description: Build container blocks that can nest other blocks using the InnerBlocks component
+---
+
+InnerBlocks allows you to create container blocks that can contain other blocks. This enables building complex layouts like columns, groups, and custom sections.
+
+## Basic Usage
+
+InnerBlocks exports a pair of components for the `edit` and `save` functions:
+
+<CodeGroup>
+```jsx edit.js
+import { useBlockProps, InnerBlocks } from '@wordpress/block-editor';
+
+export default function Edit() {
+    const blockProps = useBlockProps();
+
+    return (
+        <div { ...blockProps }>
+            <InnerBlocks />
+        </div>
+    );
+}
+```
+
+```jsx save.js
+import { useBlockProps, InnerBlocks } from '@wordpress/block-editor';
+
+export default function save() {
+    const blockProps = useBlockProps.save();
+
+    return (
+        <div { ...blockProps }>
+            <InnerBlocks.Content />
+        </div>
+    );
+}
+```
+</CodeGroup>
+
+<Warning>
+A block can render at most a single `InnerBlocks` component in `edit` and a single `InnerBlocks.Content` in `save`.
+</Warning>
+
+## Complete Example: Section Block
+
+**block.json**
+```json
+{
+    "apiVersion": 3,
+    "name": "my-plugin/section",
+    "title": "Section",
+    "category": "design",
+    "description": "A container for grouping blocks",
+    "supports": {
+        "anchor": true,
+        "color": {
+            "background": true,
+            "text": true
+        },
+        "spacing": {
+            "padding": true,
+            "margin": true
+        }
+    }
+}
+```
+
+**edit.js**
+```jsx
+import { useBlockProps, InnerBlocks } from '@wordpress/block-editor';
+
+export default function Edit() {
+    const blockProps = useBlockProps();
+
+    return (
+        <section { ...blockProps }>
+            <InnerBlocks />
+        </section>
+    );
+}
+```
+
+**save.js**
+```jsx
+import { useBlockProps, InnerBlocks } from '@wordpress/block-editor';
+
+export default function save() {
+    const blockProps = useBlockProps.save();
+
+    return (
+        <section { ...blockProps }>
+            <InnerBlocks.Content />
+        </section>
+    );
+}
+```
+
+## InnerBlocks Props
+
+### allowedBlocks
+
+<ParamField path="allowedBlocks" type="array | boolean" default="true">
+  Restrict which block types can be inserted
+</ParamField>
+
+```jsx
+const ALLOWED_BLOCKS = [ 'core/image', 'core/paragraph', 'core/heading' ];
+
+<InnerBlocks allowedBlocks={ ALLOWED_BLOCKS } />
+```
+
+**Restrict to no blocks except children:**
+```jsx
+<InnerBlocks allowedBlocks={ [] } />
+```
+
+**Allow all blocks:**
+```jsx
+<InnerBlocks allowedBlocks={ true } />
+```
+
+<Note>
+Child blocks that mark themselves as compatible with a parent block are never excluded, even if not in `allowedBlocks`.
+</Note>
+
+### template
+
+<ParamField path="template" type="array">
+  Predefined block structure to initialize InnerBlocks with
+</ParamField>
+
+```jsx
+const TEMPLATE = [
+    [ 'core/heading', { level: 2, placeholder: 'Enter heading...' } ],
+    [ 'core/paragraph', { placeholder: 'Enter description...' } ],
+    [ 'core/button', { text: 'Click here' } ]
+];
+
+<InnerBlocks template={ TEMPLATE } />
+```
+
+#### Nested Template
+
+```jsx
+const TEMPLATE = [
+    [ 'core/columns', {}, [
+        [ 'core/column', {}, [
+            [ 'core/image' ],
+        ] ],
+        [ 'core/column', {}, [
+            [ 'core/paragraph', { placeholder: 'Enter side content...' } ],
+        ] ],
+    ] ]
+];
+
+<InnerBlocks template={ TEMPLATE } />
+```
+
+### templateLock
+
+<ParamField path="templateLock" type="string | boolean">
+  Controls how users can modify the template structure
+</ParamField>
+
+Options:
+- `'all'` - Prevents all operations (insert, move, delete)
+- `'insert'` - Prevents inserting/removing, but allows moving
+- `'contentOnly'` - Prevents all operations and hides non-content blocks
+- `false` - No locking (default)
+
+```jsx
+<InnerBlocks
+    template={ TEMPLATE }
+    templateLock="all"  // Users cannot modify structure
+/>
+```
+
+### Real Example: Columns Block
+
+From `packages/block-library/src/columns`:
+
+**block.json**
+```json
+{
+    "name": "core/columns",
+    "allowedBlocks": [ "core/column" ],
+    "attributes": {
+        "verticalAlignment": {
+            "type": "string"
+        },
+        "isStackedOnMobile": {
+            "type": "boolean",
+            "default": true
+        }
+    }
+}
+```
+
+### orientation
+
+<ParamField path="orientation" type="'horizontal' | 'vertical'" default="'vertical'">
+  Display direction for block movers and drag-and-drop
+</ParamField>
+
+```jsx
+<InnerBlocks orientation="horizontal" />
+```
+
+Useful for blocks like buttons where items are arranged horizontally.
+
+### renderAppender
+
+<ParamField path="renderAppender" type="Component | false">
+  Component to render at the end of the blocks list
+</ParamField>
+
+#### Built-in Appenders
+
+```jsx
+// Button appender (+ icon)
+<InnerBlocks renderAppender={ InnerBlocks.ButtonBlockAppender } />
+
+// Default block appender
+<InnerBlocks renderAppender={ InnerBlocks.DefaultBlockAppender } />
+
+// No appender
+<InnerBlocks renderAppender={ false } />
+```
+
+#### Custom Appender
+
+```jsx
+function MyCustomAppender() {
+    return (
+        <button className="my-custom-appender">
+            Add Block
+        </button>
+    );
+}
+
+<InnerBlocks renderAppender={ MyCustomAppender } />
+```
+
+### placeholder
+
+<ParamField path="placeholder" type="Component">
+  Component shown before any blocks are added
+</ParamField>
+
+```jsx
+function MyPlaceholder() {
+    return (
+        <div className="my-placeholder">
+            <p>Add blocks to get started</p>
+        </div>
+    );
+}
+
+<InnerBlocks placeholder={ MyPlaceholder } />
+```
+
+### defaultBlock
+
+<ParamField path="defaultBlock" type="object">
+  Default block type and attributes for new insertions
+</ParamField>
+
+```jsx
+const DEFAULT_BLOCK = {
+    name: 'core/paragraph',
+    attributes: { placeholder: 'Start writing...' }
+};
+
+<InnerBlocks
+    defaultBlock={ DEFAULT_BLOCK }
+    directInsert={ true }
+/>
+```
+
+### directInsert
+
+<ParamField path="directInsert" type="boolean" default="false">
+  Whether to insert the default block directly without showing the inserter
+</ParamField>
+
+```jsx
+<InnerBlocks
+    defaultBlock={{ name: 'core/paragraph' }}
+    directInsert={ true }
+/>
+```
+
+### prioritizedInserterBlocks
+
+<ParamField path="prioritizedInserterBlocks" type="array">
+  Block types to show first in the inserter
+</ParamField>
+
+```jsx
+// Show navigation link blocks first
+const PRIORITIZED = [
+    'core/navigation-link',
+    'core/navigation-link/page'
+];
+
+<InnerBlocks prioritizedInserterBlocks={ PRIORITIZED } />
+```
+
+### templateInsertUpdatesSelection
+
+<ParamField path="templateInsertUpdatesSelection" type="boolean" default="false">
+  Whether inserting template blocks updates the selection
+</ParamField>
+
+```jsx
+<InnerBlocks
+    template={ TEMPLATE }
+    templateInsertUpdatesSelection={ true }
+/>
+```
+
+## Advanced Examples
+
+### Testimonial Block with Fixed Structure
+
+```jsx
+const TEMPLATE = [
+    [ 'core/quote', { citation: 'Customer Name' }, [
+        [ 'core/paragraph', { placeholder: 'Enter testimonial...' } ]
+    ] ],
+];
+
+export default function Edit() {
+    const blockProps = useBlockProps();
+
+    return (
+        <div { ...blockProps }>
+            <InnerBlocks
+                template={ TEMPLATE }
+                templateLock="all"  // Users can only edit content
+            />
+        </div>
+    );
+}
+```
+
+### Card Block with Specific Allowed Blocks
+
+```jsx
+const ALLOWED_BLOCKS = [ 'core/heading', 'core/paragraph', 'core/button' ];
+const TEMPLATE = [
+    [ 'core/heading', { level: 3, placeholder: 'Card title' } ],
+    [ 'core/paragraph', { placeholder: 'Card description...' } ],
+];
+
+export default function Edit() {
+    const blockProps = useBlockProps();
+
+    return (
+        <div { ...blockProps } className="card">
+            <InnerBlocks
+                allowedBlocks={ ALLOWED_BLOCKS }
+                template={ TEMPLATE }
+            />
+        </div>
+    );
+}
+```
+
+### Accordion Item with Content Lock
+
+```jsx
+const TEMPLATE = [
+    [ 'core/paragraph', { placeholder: 'Accordion content...' } ],
+];
+
+export default function Edit( { attributes } ) {
+    const blockProps = useBlockProps();
+
+    return (
+        <div { ...blockProps }>
+            <div className="accordion-title">{ attributes.title }</div>
+            <div className="accordion-content">
+                <InnerBlocks
+                    template={ TEMPLATE }
+                    templateLock="contentOnly"
+                />
+            </div>
+        </div>
+    );
+}
+```
+
+## Using with useInnerBlocksProps
+
+For more advanced use cases, use `useInnerBlocksProps`:
+
+```jsx
+import { useBlockProps, useInnerBlocksProps } from '@wordpress/block-editor';
+
+export default function Edit( { attributes } ) {
+    const { allowedBlocks } = attributes;
+    const blockProps = useBlockProps();
+    
+    const innerBlocksProps = useInnerBlocksProps( blockProps, {
+        allowedBlocks,
+        template: [ [ 'core/paragraph' ] ],
+        orientation: 'horizontal',
+    } );
+
+    return <div { ...innerBlocksProps } />;
+}
+```
+
+## Real-World Example: Group Block
+
+From `packages/block-library/src/group`:
+
+**block.json**
+```json
+{
+    "name": "core/group",
+    "attributes": {
+        "tagName": {
+            "type": "string",
+            "default": "div"
+        },
+        "templateLock": {
+            "type": [ "string", "boolean" ],
+            "enum": [ "all", "insert", "contentOnly", false ]
+        }
+    },
+    "supports": {
+        "align": [ "wide", "full" ],
+        "anchor": true,
+        "color": {
+            "gradients": true,
+            "heading": true,
+            "button": true,
+            "link": true
+        },
+        "spacing": {
+            "margin": [ "top", "bottom" ],
+            "padding": true,
+            "blockGap": true
+        },
+        "layout": {
+            "allowSizingOnChildren": true
+        },
+        "allowedBlocks": true
+    }
+}
+```
+
+## Parent-Child Relationships
+
+Use the `parent` property in `block.json` to restrict where a block can be used:
+
+**Child block (core/column):**
+```json
+{
+    "name": "core/column",
+    "parent": [ "core/columns" ],
+    "supports": {
+        "reusable": false
+    }
+}
+```
+
+**Parent block (core/columns):**
+```json
+{
+    "name": "core/columns",
+    "allowedBlocks": [ "core/column" ]
+}
+```
+
+## Dynamic InnerBlocks (Server-side Rendering)
+
+For dynamic blocks, InnerBlocks content is available in PHP:
+
+```php
+function render_section_block( $attributes, $content ) {
+    $wrapper_attributes = get_block_wrapper_attributes();
+    
+    return sprintf(
+        '<section %1$s>%2$s</section>',
+        $wrapper_attributes,
+        $content  // This contains the rendered InnerBlocks
+    );
+}
+
+register_block_type( 'my-plugin/section', array(
+    'render_callback' => 'render_section_block',
+) );
+```
+
+**edit.js** (same as static blocks):
+```jsx
+export default function Edit() {
+    const blockProps = useBlockProps();
+    return (
+        <section { ...blockProps }>
+            <InnerBlocks />
+        </section>
+    );
+}
+```
+
+**save.js** (for dynamic blocks, return null):
+```jsx
+export default function save() {
+    return <InnerBlocks.Content />;
+}
+```
+
+## Block Appender Customization
+
+### Conditional Appender
+
+```jsx
+export default function Edit( { attributes } ) {
+    const { maxBlocks } = attributes;
+    const blockProps = useBlockProps();
+    const { clientId } = useBlockEditContext();
+    const { innerBlocks } = useSelect( ( select ) => ({
+        innerBlocks: select( 'core/block-editor' ).getBlocks( clientId ),
+    }) );
+    
+    const hasReachedMax = innerBlocks.length >= maxBlocks;
+
+    return (
+        <div { ...blockProps }>
+            <InnerBlocks
+                renderAppender={
+                    hasReachedMax
+                        ? false
+                        : InnerBlocks.ButtonBlockAppender
+                }
+            />
+        </div>
+    );
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always include InnerBlocks.Content in save">
+    The save function must render `<InnerBlocks.Content />` exactly where the edit function renders `<InnerBlocks />`.
+  </Accordion>
+  
+  <Accordion title="Use templates for consistent structure">
+    Templates help users start with the right block configuration and maintain consistency.
+  </Accordion>
+  
+  <Accordion title="Restrict allowed blocks when appropriate">
+    Use `allowedBlocks` to prevent users from adding blocks that don't work well in your layout.
+  </Accordion>
+  
+  <Accordion title="Consider template locking">
+    Lock templates when structure is important, but allow users to edit content.
+  </Accordion>
+  
+  <Accordion title="Use parent/child relationships">
+    Define parent constraints to ensure child blocks are only used where appropriate.
+  </Accordion>
+</AccordionGroup>
+
+## Common Patterns
+
+### Two-Column Layout
+
+```jsx
+const TEMPLATE = [
+    [ 'core/columns', {}, [
+        [ 'core/column', {}, [
+            [ 'core/heading', { placeholder: 'Left column title' } ],
+            [ 'core/paragraph', { placeholder: 'Left column content' } ],
+        ] ],
+        [ 'core/column', {}, [
+            [ 'core/heading', { placeholder: 'Right column title' } ],
+            [ 'core/paragraph', { placeholder: 'Right column content' } ],
+        ] ],
+    ] ],
+];
+
+<InnerBlocks template={ TEMPLATE } />
+```
+
+### Media-Text Pattern
+
+```jsx
+const TEMPLATE = [
+    [ 'core/image', {} ],
+    [ 'core/heading', { level: 2 } ],
+    [ 'core/paragraph', {} ],
+    [ 'core/button', {} ],
+];
+
+<InnerBlocks
+    template={ TEMPLATE }
+    templateLock="insert"  // Can reorder but not add/remove
+/>
+```
+
+## Accessing Inner Blocks Data
+
+Use the block editor selectors to work with inner blocks:
+
+```jsx
+import { useSelect } from '@wordpress/data';
+import { store as blockEditorStore } from '@wordpress/block-editor';
+
+function Edit( { clientId } ) {
+    const { innerBlocks, hasInnerBlocks } = useSelect(
+        ( select ) => {
+            const { getBlocks, getBlockCount } = select( blockEditorStore );
+            return {
+                innerBlocks: getBlocks( clientId ),
+                hasInnerBlocks: getBlockCount( clientId ) > 0,
+            };
+        },
+        [ clientId ]
+    );
+
+    return (
+        <div>
+            { hasInnerBlocks ? (
+                <InnerBlocks />
+            ) : (
+                <p>Add blocks to get started</p>
+            ) }
+        </div>
+    );
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Block Patterns" href="/blocks/block-patterns">
+    Create reusable layouts with patterns
+  </Card>
+  <Card title="Block API Overview" href="/blocks/block-api">
+    Return to core Block API concepts
+  </Card>
+</CardGroup>

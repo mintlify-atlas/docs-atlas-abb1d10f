@@ -1,0 +1,304 @@
+---
+title: '@wordpress/edit-post'
+description: 'Complete post editor screen with UI, sidebars, and plugin integration'
+---
+
+## Overview
+
+The `@wordpress/edit-post` package provides the complete post editor screen for WordPress. It sits at the top of the three-layer editor architecture, assembling UI components, sidebars, settings panels, and plugin slots into a full editing experience.
+
+<Note>
+  This package is designed for WordPress core and may not be fully documented for external use. However, you can use it in your own projects with the understanding that APIs may evolve.
+</Note>
+
+## Three-Layer Architecture
+
+The WordPress editor follows a three-layer architecture where each layer builds upon the previous one:
+
+```
+block-editor (WordPress-agnostic, generic editing)
+    ↓
+editor (WordPress post-type-aware functionality)
+    ↓
+edit-post (Full post editor screen with UI)
+```
+
+### Layer Responsibilities
+
+- **`@wordpress/block-editor`** - Generic, WordPress-agnostic block editing functionality. Provides the canvas, block selection, and manipulation APIs.
+- **`@wordpress/editor`** - WordPress-specific features for post types. Adds document settings, post status, and entity management.
+- **`@wordpress/edit-post`** - Complete editor screen implementation. Assembles all UI elements, sidebars, toolbars, and plugin extension points.
+
+<Warning>
+  Lower layers must never depend on higher layers. The `block-editor` package must remain WordPress-agnostic and cannot import from `editor` or `edit-post`.
+</Warning>
+
+## Installation
+
+Install the package via npm:
+
+```bash
+npm install @wordpress/edit-post
+```
+
+**Environment Requirements:**
+
+This package requires an ES2015+ environment. If you're targeting older environments, include the polyfill from `@wordpress/babel-preset-default`.
+
+## Initializing the Editor
+
+You initialize the post editor using the `initializeEditor` function:
+
+```js
+import { initializeEditor } from '@wordpress/edit-post';
+
+// Initialize the editor for a specific post
+initializeEditor(
+  'editor', // Unique identifier for editor instance
+  'post',   // Post type
+  123,      // Post ID
+  {
+    // Editor settings
+    alignWide: true,
+    availableTemplates: [],
+    // ... other settings
+  },
+  {
+    // Initial edits (programmatic, non-user-initiated)
+    title: 'New Post Title',
+  }
+);
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Unique identifier for the editor instance |
+| `postType` | `string` | Post type of the post to edit (e.g., 'post', 'page') |
+| `postId` | `number` | ID of the post to edit |
+| `settings` | `Object` | Editor settings object (optional) |
+| `initialEdits` | `Object` | Programmatic edits to apply initially, bypassing unsaved changes prompt |
+
+<Info>
+  Initial edits are considered non-user-initiated, so they won't trigger the "unsaved changes" warning when the user navigates away.
+</Info>
+
+## Extending the Editor UI
+
+You extend the post editor UI using the `registerPlugin` API from `@wordpress/plugins`. This allows you to define all your plugin's UI elements in a single place.
+
+### Using Plugin Components
+
+The package exports several components for extending different areas of the editor. These components are available in the global variable `wp.editPost` when you define `wp-edit-post` as a script dependency.
+
+```js
+import { registerPlugin } from '@wordpress/plugins';
+import { PluginSidebar } from '@wordpress/edit-post';
+import { PanelBody } from '@wordpress/components';
+
+const MyCustomSidebar = () => (
+  <PluginSidebar
+    name="my-custom-sidebar"
+    title="My Custom Sidebar"
+    icon="admin-plugins"
+  >
+    <PanelBody>
+      <p>Custom sidebar content goes here</p>
+    </PanelBody>
+  </PluginSidebar>
+);
+
+registerPlugin('my-plugin', {
+  render: MyCustomSidebar,
+});
+```
+
+## Plugin Extension Components
+
+The following components allow you to add custom UI elements to various parts of the editor:
+
+### PluginSidebar
+
+Adds a custom sidebar to the editor with its own icon in the toolbar.
+
+<Note>
+  For full documentation, see the [PluginSidebar reference in @wordpress/editor](/packages/editor#pluginsidebar).
+</Note>
+
+### PluginSidebarMoreMenuItem
+
+Adds a menu item to open your custom sidebar from the "More" menu.
+
+### PluginDocumentSettingPanel
+
+Adds a custom panel to the Document settings sidebar.
+
+### PluginBlockSettingsMenuItem
+
+Adds a custom menu item to the block settings dropdown (three-dot menu in the block toolbar).
+
+### PluginPostPublishPanel
+
+Adds custom content to the post-publish panel that appears after publishing.
+
+### PluginPrePublishPanel
+
+Adds custom content to the pre-publish panel that appears before publishing.
+
+### PluginPostStatusInfo
+
+Adds custom information to the post status section of the Document sidebar.
+
+### PluginMoreMenuItem
+
+Adds a custom menu item to the editor's "More" menu (three-dot menu in the top toolbar).
+
+<Info>
+  Most of these components are re-exported from `@wordpress/editor`. You can use them from either package, but importing from `@wordpress/editor` is recommended for better compatibility.
+</Info>
+
+## Complete Plugin Example
+
+Here's a comprehensive example showing multiple extension points:
+
+```js
+import { registerPlugin } from '@wordpress/plugins';
+import {
+  PluginSidebar,
+  PluginSidebarMoreMenuItem,
+  PluginDocumentSettingPanel,
+  PluginPostPublishPanel,
+} from '@wordpress/edit-post';
+import { PanelBody, TextControl } from '@wordpress/components';
+import { useSelect, useDispatch } from '@wordpress/data';
+
+const MyPluginUI = () => {
+  const { editPost } = useDispatch('core/editor');
+  const customField = useSelect(
+    (select) => select('core/editor').getEditedPostAttribute('meta')?.custom_field,
+    []
+  );
+
+  return (
+    <>
+      {/* Add sidebar menu item */}
+      <PluginSidebarMoreMenuItem target="my-plugin-sidebar">
+        My Plugin Settings
+      </PluginSidebarMoreMenuItem>
+
+      {/* Add custom sidebar */}
+      <PluginSidebar
+        name="my-plugin-sidebar"
+        title="My Plugin"
+        icon="admin-plugins"
+      >
+        <PanelBody>
+          <TextControl
+            label="Custom Field"
+            value={customField || ''}
+            onChange={(value) => {
+              editPost({ meta: { custom_field: value } });
+            }}
+          />
+        </PanelBody>
+      </PluginSidebar>
+
+      {/* Add document settings panel */}
+      <PluginDocumentSettingPanel
+        name="my-plugin-panel"
+        title="Additional Settings"
+      >
+        <p>Custom document settings go here</p>
+      </PluginDocumentSettingPanel>
+
+      {/* Add post-publish panel */}
+      <PluginPostPublishPanel
+        title="After Publishing"
+        initialOpen={true}
+      >
+        <p>Post published successfully! Next steps...</p>
+      </PluginPostPublishPanel>
+    </>
+  );
+};
+
+registerPlugin('my-plugin', {
+  render: MyPluginUI,
+});
+```
+
+## Data Store
+
+The package provides a Redux-style data store for managing editor UI state:
+
+```js
+import { store as editPostStore } from '@wordpress/edit-post';
+import { useSelect, useDispatch } from '@wordpress/data';
+
+// Reading from the store
+const isFeatureActive = useSelect(
+  (select) => select(editPostStore).isFeatureActive('welcomeGuide'),
+  []
+);
+
+// Dispatching actions
+const { toggleFeature } = useDispatch(editPostStore);
+toggleFeature('welcomeGuide');
+```
+
+The store manages UI preferences like:
+- Active editor mode (visual or code)
+- Sidebar visibility
+- Panel open/closed states
+- Feature flags and preferences
+
+## WordPress Script Dependency
+
+When loading via WordPress's script system, you can access the package through the global `wp.editPost` object:
+
+```php
+// In your plugin or theme
+wp_enqueue_script(
+  'my-custom-script',
+  plugins_url('my-script.js', __FILE__),
+  array('wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components'),
+  '1.0.0',
+  true
+);
+```
+
+```js
+// In my-script.js
+const { registerPlugin } = wp.plugins;
+const { PluginSidebar } = wp.editPost;
+
+registerPlugin('my-plugin', {
+  render: () => (
+    wp.element.createElement(
+      PluginSidebar,
+      { name: 'my-sidebar', title: 'My Sidebar' },
+      'Content'
+    )
+  ),
+});
+```
+
+## Migration Notes
+
+### Deprecated APIs
+
+- **`reinitializeEditor()`** - This function is now a deprecated no-op. You don't need to reinitialize the editor after errors.
+
+## Related Packages
+
+- [`@wordpress/block-editor`](/packages/block-editor) - Generic block editing functionality
+- [`@wordpress/editor`](/packages/editor) - WordPress post-type-aware editor features
+- [`@wordpress/plugins`](/packages/plugins) - Plugin registration and management API
+- [`@wordpress/data`](/packages/data) - Redux-style data stores
+
+## Resources
+
+- [GitHub Repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/edit-post)
+- [npm Package](https://www.npmjs.com/package/@wordpress/edit-post)
+- [Plugin Development Guide](https://github.com/WordPress/gutenberg/tree/HEAD/packages/plugins/README.md)

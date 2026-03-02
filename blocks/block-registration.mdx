@@ -1,0 +1,492 @@
+---
+title: Block Registration
+description: Learn how to register blocks using registerBlockType and block.json metadata
+---
+
+Block registration makes your block available in the WordPress Block Editor. You register blocks using the `registerBlockType` function from the `@wordpress/blocks` package.
+
+## registerBlockType Function
+
+<ParamField path="blockNameOrMetadata" type="string | object" required>
+  Either a block name string (`namespace/block-name`) or a block.json metadata object
+</ParamField>
+
+<ParamField path="settings" type="object" required>
+  Block configuration object containing edit, save, and other properties
+</ParamField>
+
+### Returns
+
+<ResponseField name="WPBlockType" type="object">
+  The registered block type object, or `undefined` if registration fails
+</ResponseField>
+
+## Registration Methods
+
+### Method 1: JavaScript-Only Registration
+
+```js
+import { registerBlockType } from '@wordpress/blocks';
+import { __ } from '@wordpress/i18n';
+
+registerBlockType( 'my-plugin/book', {
+    title: __( 'Book' ),
+    category: 'widgets',
+    icon: 'book-alt',
+    description: __( 'Block showing a Book card.' ),
+    keywords: [ __( 'reading' ), __( 'library' ) ],
+    attributes: {
+        title: {
+            type: 'string',
+            source: 'html',
+            selector: 'h3',
+        },
+        author: {
+            type: 'string',
+            source: 'html',
+            selector: '.book-author',
+        },
+        pages: {
+            type: 'number',
+        },
+    },
+    edit: ( { attributes, setAttributes } ) => {
+        return (
+            <div>
+                <h3>{ attributes.title }</h3>
+                <p>{ attributes.author }</p>
+            </div>
+        );
+    },
+    save: ( { attributes } ) => {
+        return (
+            <div>
+                <h3>{ attributes.title }</h3>
+                <div className="book-author">{ attributes.author }</div>
+            </div>
+        );
+    },
+} );
+```
+
+### Method 2: Using block.json (Recommended)
+
+The recommended method uses a `block.json` metadata file:
+
+**block.json**
+```json
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "core/button",
+    "title": "Button",
+    "category": "design",
+    "parent": [ "core/buttons" ],
+    "description": "Prompt visitors to take action with a button-style link.",
+    "keywords": [ "link" ],
+    "textdomain": "default",
+    "attributes": {
+        "text": {
+            "type": "rich-text",
+            "source": "rich-text",
+            "selector": "a,button",
+            "role": "content"
+        },
+        "url": {
+            "type": "string",
+            "source": "attribute",
+            "selector": "a",
+            "attribute": "href",
+            "role": "content"
+        },
+        "linkTarget": {
+            "type": "string",
+            "source": "attribute",
+            "selector": "a",
+            "attribute": "target",
+            "role": "content"
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "color": {
+            "gradients": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true
+        }
+    },
+    "styles": [
+        { "name": "fill", "label": "Fill", "isDefault": true },
+        { "name": "outline", "label": "Outline" }
+    ]
+}
+```
+
+**index.js**
+```js
+import { registerBlockType } from '@wordpress/blocks';
+import { button as icon } from '@wordpress/icons';
+import metadata from './block.json';
+import edit from './edit';
+import save from './save';
+
+registerBlockType( metadata, {
+    icon,
+    edit,
+    save,
+} );
+```
+
+**edit.js**
+```js
+import { useBlockProps, RichText } from '@wordpress/block-editor';
+
+export default function Edit( { attributes, setAttributes } ) {
+    const blockProps = useBlockProps();
+
+    return (
+        <div { ...blockProps }>
+            <RichText
+                tagName="a"
+                value={ attributes.text }
+                onChange={ ( text ) => setAttributes( { text } ) }
+                placeholder="Add text..."
+            />
+        </div>
+    );
+}
+```
+
+**save.js**
+```js
+import { useBlockProps, RichText } from '@wordpress/block-editor';
+
+export default function save( { attributes } ) {
+    const blockProps = useBlockProps.save();
+
+    return (
+        <div { ...blockProps }>
+            <a href={ attributes.url } target={ attributes.linkTarget }>
+                <RichText.Content value={ attributes.text } />
+            </a>
+        </div>
+    );
+}
+```
+
+## Block Configuration Properties
+
+### Core Properties
+
+<ParamField path="title" type="string" required>
+  Display title shown in the inserter. Should be translated with `__()` function.
+  
+  ```js
+  title: __( 'Book' )
+  ```
+</ParamField>
+
+<ParamField path="category" type="string" required>
+  Block category. Core categories: `text`, `media`, `design`, `widgets`, `theme`, `embed`
+  
+  ```js
+  category: 'widgets'
+  ```
+</ParamField>
+
+<ParamField path="icon" type="string | element | object">
+  Icon for the block. Can be a Dashicon slug, SVG element, or icon descriptor object.
+  
+  ```js
+  // Dashicon slug
+  icon: 'book-alt'
+  
+  // SVG element
+  icon: <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z" /></svg>
+  
+  // Icon descriptor
+  icon: {
+      background: '#7e70af',
+      foreground: '#fff',
+      src: <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z" /></svg>,
+  }
+  ```
+</ParamField>
+
+<ParamField path="description" type="string">
+  Short description shown in the block inspector
+  
+  ```js
+  description: __( 'Block showing a Book card.' )
+  ```
+</ParamField>
+
+<ParamField path="keywords" type="array">
+  Search terms to help users find the block
+  
+  ```js
+  keywords: [ __( 'image' ), __( 'photo' ), __( 'pics' ) ]
+  ```
+</ParamField>
+
+### Attributes
+
+<ParamField path="attributes" type="object">
+  Block data structure definition. See [Block Attributes](/blocks/block-attributes) for details.
+</ParamField>
+
+### Block Hierarchy
+
+<ParamField path="parent" type="array">
+  Restrict block to only be available when nested within specified parent blocks
+  
+  ```json
+  {
+      "parent": [ "core/buttons" ]
+  }
+  ```
+</ParamField>
+
+<ParamField path="ancestor" type="array">
+  Block available anywhere within specified ancestor blocks (not just direct children)
+  
+  ```json
+  {
+      "ancestor": [ "core/columns" ]
+  }
+  ```
+</ParamField>
+
+<ParamField path="allowedBlocks" type="array">
+  Restrict which block types can be nested as direct children
+  
+  ```json
+  {
+      "allowedBlocks": [ "core/column" ]
+  }
+  ```
+</ParamField>
+
+### Styles and Variations
+
+<ParamField path="styles" type="array">
+  Alternative visual styles for the block
+  
+  ```js
+  styles: [
+      { name: 'default', label: __( 'Rounded' ), isDefault: true },
+      { name: 'outline', label: __( 'Outline' ) },
+      { name: 'squared', label: __( 'Squared' ) }
+  ]
+  ```
+</ParamField>
+
+<ParamField path="variations" type="array">
+  Block variations with different initial configurations. See [Block Variations API](/docs/reference-guides/block-api/block-variations)
+</ParamField>
+
+### Block Example
+
+<ParamField path="example" type="object">
+  Provides structured data for block preview in inspector and styles panel
+  
+  ```js
+  example: {
+      attributes: {
+          content: __( 'In a village of La Mancha...' ),
+      },
+  }
+  ```
+</ParamField>
+
+## Real-World Example: Paragraph Block
+
+Here's how the core Paragraph block is registered:
+
+**block.json**
+```json
+{
+    "apiVersion": 3,
+    "name": "core/paragraph",
+    "title": "Paragraph",
+    "category": "text",
+    "description": "Start with the basic building block of all narrative.",
+    "keywords": [ "text" ],
+    "attributes": {
+        "content": {
+            "type": "rich-text",
+            "source": "rich-text",
+            "selector": "p",
+            "role": "content"
+        },
+        "dropCap": {
+            "type": "boolean",
+            "default": false
+        },
+        "direction": {
+            "type": "string",
+            "enum": [ "ltr", "rtl" ]
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "color": {
+            "gradients": true,
+            "link": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true
+        }
+    }
+}
+```
+
+**index.js**
+```js
+import { paragraph as icon } from '@wordpress/icons';
+import metadata from './block.json';
+import edit from './edit';
+import save from './save';
+import transforms from './transforms';
+import deprecated from './deprecated';
+
+export const settings = {
+    icon,
+    example: {
+        attributes: {
+            content: __(
+                'In a village of La Mancha, the name of which I have no desire to call to mind...'
+            ),
+        },
+    },
+    transforms,
+    deprecated,
+    merge( attributes, attributesToMerge ) {
+        return {
+            content:
+                ( attributes.content || '' ) +
+                ( attributesToMerge.content || '' ),
+        };
+    },
+    edit,
+    save,
+};
+```
+
+## Block Collections
+
+Group related blocks together in the inserter:
+
+```js
+import { registerBlockCollection } from '@wordpress/blocks';
+
+registerBlockCollection( 'my-plugin', {
+    title: __( 'Custom Collection' ),
+    icon: 'admin-plugins',
+} );
+
+// All blocks with 'my-plugin' namespace will appear in this collection
+registerBlockType( 'my-plugin/block-one', { /* ... */ } );
+registerBlockType( 'my-plugin/block-two', { /* ... */ } );
+```
+
+## Unregistering Blocks
+
+Remove previously registered blocks:
+
+```js
+import { unregisterBlockType } from '@wordpress/blocks';
+
+unregisterBlockType( 'core/verse' );
+```
+
+<Warning>
+Unregistering core blocks may break existing content. Only unregister blocks if you're certain they're not being used.
+</Warning>
+
+## Server-Side Registration
+
+Register blocks in PHP for better performance:
+
+```php
+function my_plugin_register_blocks() {
+    register_block_type( __DIR__ . '/build/blocks/book' );
+}
+add_action( 'init', 'my_plugin_register_blocks' );
+```
+
+This automatically reads `block.json` and registers the block on both server and client.
+
+## Validation and Error Handling
+
+The `registerBlockType` function validates your block configuration:
+
+<CodeGroup>
+```js Invalid name format
+// ❌ Will show warning and return undefined
+registerBlockType( 'MyBlock', {} );
+// Warning: Block names must contain a namespace prefix
+```
+
+```js Already registered
+// ❌ Will show warning and return undefined
+registerBlockType( 'core/paragraph', {} );
+// Warning: Block "core/paragraph" is already registered.
+```
+
+```js Valid registration
+// ✅ Returns block type object
+const blockType = registerBlockType( 'my-plugin/book', {
+    title: __( 'Book' ),
+    edit: Edit,
+    save,
+});
+
+console.log( blockType.name ); // "my-plugin/book"
+```
+</CodeGroup>
+
+## TypeScript Type Definition
+
+```typescript
+interface WPBlockType {
+    name: string;
+    title: string;
+    description?: string;
+    category?: string;
+    icon?: WPBlockTypeIcon;
+    keywords?: string[];
+    attributes?: Record<string, any>;
+    save?: Component;
+    edit: Component;
+    variations?: WPBlockVariation[];
+    example?: object;
+}
+
+function registerBlockType(
+    blockNameOrMetadata: string | object,
+    settings: object
+): WPBlockType | undefined;
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Define Block Attributes" href="/blocks/block-attributes">
+    Learn how to structure your block's data
+  </Card>
+  <Card title="Use Block Supports" href="/blocks/block-supports">
+    Enable editor features automatically
+  </Card>
+</CardGroup>

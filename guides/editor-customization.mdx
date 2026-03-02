@@ -1,0 +1,511 @@
+---
+title: Editor Customization
+description: Learn how to customize and curate the WordPress Block Editor experience using filters, settings, and configuration options.
+---
+
+The WordPress Block Editor provides extensive customization capabilities, allowing you to tailor the editing experience to your specific needs. You can control which features are available, modify block behavior, and create a curated editing environment.
+
+## Editor Settings
+
+### The block_editor_settings_all Filter
+
+The `block_editor_settings_all` PHP filter is your primary tool for modifying editor settings before the editor initializes:
+
+```php
+add_filter( 'block_editor_settings_all', 'example_customize_editor_settings' );
+
+function example_customize_editor_settings( $settings, $context ) {
+  // Modify settings here
+  return $settings;
+}
+```
+
+The filter receives two parameters:
+- `$settings` - Array of configurable editor settings
+- `$context` - Instance of `WP_Block_Editor_Context` containing editor information
+
+### Common Editor Settings
+
+<Tabs>
+  <Tab title="Disable Code Editor">
+    ```php
+    add_filter( 'block_editor_settings_all', 'disable_code_editor_for_non_admins' );
+
+    function disable_code_editor_for_non_admins( $settings ) {
+      $can_activate_plugins = current_user_can( 'activate_plugins' );
+
+      if ( ! $can_activate_plugins ) {
+        $settings['codeEditingEnabled'] = false;
+      }
+
+      return $settings;
+    }
+    ```
+  </Tab>
+  <Tab title="Set Default Image Size">
+    ```php
+    add_filter( 'block_editor_settings_all', 'set_default_image_size' );
+
+    function set_default_image_size( $settings ) {
+      $settings['imageDefaultSize'] = 'large';
+      return $settings;
+    }
+    ```
+  </Tab>
+  <Tab title="Disable Font Library">
+    ```php
+    add_filter( 'block_editor_settings_all', 'disable_font_library' );
+
+    function disable_font_library( $settings ) {
+      $settings['fontLibraryEnabled'] = false;
+      return $settings;
+    }
+    ```
+  </Tab>
+  <Tab title="Disable Inspector Tabs">
+    ```php
+    add_filter( 'block_editor_settings_all', 'disable_inspector_tabs' );
+
+    function disable_inspector_tabs( $settings ) {
+      $settings['enableBlockInspectorTabs'] = false;
+      return $settings;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Controlling Available Blocks
+
+### Allow/Deny Lists
+
+You can control which blocks are available in the editor:
+
+<CodeGroup>
+```php Server-side (PHP)
+add_filter( 'allowed_block_types_all', 'example_allowed_blocks', 10, 2 );
+
+function example_allowed_blocks( $allowed_block_types, $editor_context ) {
+  // Return array of allowed block names
+  return array(
+    'core/paragraph',
+    'core/heading',
+    'core/list',
+    'core/image',
+  );
+}
+```
+
+```js Client-side (JavaScript)
+import { unregisterBlockType } from '@wordpress/blocks';
+import domReady from '@wordpress/dom-ready';
+
+domReady( function () {
+  // Unregister specific blocks
+  unregisterBlockType( 'core/verse' );
+  unregisterBlockType( 'core/pullquote' );
+} );
+```
+
+```js Allow List Pattern
+const allowedBlocks = [
+  'core/paragraph',
+  'core/image',
+  'core/heading',
+];
+
+wp.blocks.getBlockTypes().forEach( function ( blockType ) {
+  if ( allowedBlocks.indexOf( blockType.name ) === -1 ) {
+    wp.blocks.unregisterBlockType( blockType.name );
+  }
+} );
+```
+</CodeGroup>
+
+<Warning>
+When unregistering blocks, ensure your code runs after block registration by specifying `wp-edit-post` as a dependency and using `domReady()` to avoid race conditions.
+</Warning>
+
+## Block Categories
+
+Customize block categories in the inserter:
+
+```php
+add_filter( 'block_categories_all', 'add_custom_block_category', 10, 2 );
+
+function add_custom_block_category( $categories, $editor_context ) {
+  if ( ! empty( $editor_context->post ) ) {
+    return array_merge(
+      $categories,
+      array(
+        array(
+          'slug'  => 'custom-category',
+          'title' => __( 'Custom Blocks', 'textdomain' ),
+          'icon'  => 'admin-plugins',
+        ),
+      )
+    );
+  }
+  return $categories;
+}
+```
+
+## Client-side Settings Filters
+
+### blockEditor.useSetting.before
+
+This powerful filter allows you to modify block-level theme.json settings dynamically:
+
+<Tabs>
+  <Tab title="Restrict by Block Type">
+    ```js
+    import { addFilter } from '@wordpress/hooks';
+
+    addFilter(
+      'blockEditor.useSetting.before',
+      'example/limit-column-spacing',
+      ( settingValue, settingName, clientId, blockName ) => {
+        if ( blockName === 'core/column' && settingName === 'spacing.units' ) {
+          return [ 'px' ];
+        }
+        return settingValue;
+      }
+    );
+    ```
+  </Tab>
+  <Tab title="Restrict by Parent Block">
+    ```js
+    import { select } from '@wordpress/data';
+    import { addFilter } from '@wordpress/hooks';
+
+    addFilter(
+      'blockEditor.useSetting.before',
+      'example/disable-heading-color-in-media-text',
+      ( settingValue, settingName, clientId, blockName ) => {
+        if ( blockName === 'core/heading' ) {
+          const { getBlockParents, getBlockName } = select( 'core/block-editor' );
+          const blockParents = getBlockParents( clientId, true );
+          const inMediaText = blockParents.some(
+            ( ancestorId ) => getBlockName( ancestorId ) === 'core/media-text'
+          );
+
+          if ( inMediaText && settingName === 'color.text' ) {
+            return false;
+          }
+        }
+        return settingValue;
+      }
+    );
+    ```
+  </Tab>
+</Tabs>
+
+## User-Based Customization
+
+Tailor the editor experience based on user capabilities:
+
+```php
+add_filter( 'block_editor_settings_all', 'customize_by_user_role' );
+
+function customize_by_user_role( $settings ) {
+  if ( ! current_user_can( 'edit_theme_options' ) ) {
+    // Non-administrators get restricted features
+    $settings['codeEditingEnabled'] = false;
+    $settings['fontLibraryEnabled'] = false;
+    $settings['canLockBlocks'] = false;
+  }
+
+  return $settings;
+}
+```
+
+## Template Locking
+
+Control which parts of a template users can edit:
+
+```php
+function register_locked_template() {
+  $post_type_object = get_post_type_object( 'page' );
+  $post_type_object->template = array(
+    array(
+      'core/heading',
+      array(
+        'placeholder' => 'Add title...',
+        'lock' => array(
+          'move'   => true,
+          'remove' => true,
+        ),
+      ),
+    ),
+    array(
+      'core/paragraph',
+      array(
+        'placeholder' => 'Add content...',
+      ),
+    ),
+  );
+  $post_type_object->template_lock = 'all';
+}
+add_action( 'init', 'register_locked_template' );
+```
+
+## Patterns Management
+
+Control block pattern availability:
+
+```php
+// Unregister core patterns
+function remove_core_patterns() {
+  remove_theme_support( 'core-block-patterns' );
+}
+add_action( 'after_setup_theme', 'remove_core_patterns' );
+
+// Register custom patterns
+function register_custom_pattern() {
+  register_block_pattern(
+    'my-theme/hero-section',
+    array(
+      'title'       => __( 'Hero Section', 'textdomain' ),
+      'description' => __( 'A hero section with heading and call to action', 'textdomain' ),
+      'content'     => '<!-- wp:group --><!-- /wp:group -->',
+      'categories'  => array( 'featured' ),
+    )
+  );
+}
+add_action( 'init', 'register_custom_pattern' );
+```
+
+## Sidebar and Panel Customization
+
+Control editor UI elements:
+
+```js
+import { registerPlugin } from '@wordpress/plugins';
+import { PluginSidebar, PluginSidebarMoreMenuItem } from '@wordpress/edit-post';
+import { PanelBody, TextControl } from '@wordpress/components';
+
+const CustomSidebar = () => (
+  <>
+    <PluginSidebarMoreMenuItem target="custom-sidebar">
+      Custom Options
+    </PluginSidebarMoreMenuItem>
+    <PluginSidebar name="custom-sidebar" title="Custom Options">
+      <PanelBody>
+        <TextControl
+          label="Custom Field"
+          help="Enter custom data"
+        />
+      </PanelBody>
+    </PluginSidebar>
+  </>
+);
+
+registerPlugin( 'custom-sidebar', { render: CustomSidebar } );
+```
+
+## Document Settings
+
+Add custom panels to the document settings:
+
+```js
+import { registerPlugin } from '@wordpress/plugins';
+import { PluginDocumentSettingPanel } from '@wordpress/edit-post';
+import { PanelRow, ToggleControl } from '@wordpress/components';
+
+const CustomDocumentSettings = () => (
+  <PluginDocumentSettingPanel
+    name="custom-settings"
+    title="Custom Settings"
+    className="custom-settings-panel"
+  >
+    <PanelRow>
+      <ToggleControl
+        label="Enable Custom Feature"
+        checked={ false }
+        onChange={ () => {} }
+      />
+    </PanelRow>
+  </PluginDocumentSettingPanel>
+);
+
+registerPlugin( 'custom-document-settings', {
+  render: CustomDocumentSettings,
+} );
+```
+
+## Pre-publish Panel
+
+Add custom checks before publishing:
+
+```js
+import { registerPlugin } from '@wordpress/plugins';
+import { PluginPrePublishPanel } from '@wordpress/edit-post';
+
+const PrePublishCheckList = () => (
+  <PluginPrePublishPanel
+    title="Publishing Checklist"
+    initialOpen={ true }
+  >
+    <ul>
+      <li>✓ Featured image added</li>
+      <li>✓ SEO description completed</li>
+      <li>✓ Categories selected</li>
+    </ul>
+  </PluginPrePublishPanel>
+);
+
+registerPlugin( 'pre-publish-checklist', {
+  render: PrePublishCheckList,
+} );
+```
+
+## Color and Typography Controls
+
+Fine-tune design controls:
+
+```php
+add_filter( 'block_editor_settings_all', 'customize_color_palette' );
+
+function customize_color_palette( $settings ) {
+  $settings['colors'] = array(
+    array(
+      'name'  => __( 'Primary', 'textdomain' ),
+      'slug'  => 'primary',
+      'color' => '#007cba',
+    ),
+    array(
+      'name'  => __( 'Secondary', 'textdomain' ),
+      'slug'  => 'secondary',
+      'color' => '#ff5837',
+    ),
+  );
+
+  $settings['fontSizes'] = array(
+    array(
+      'name' => __( 'Small', 'textdomain' ),
+      'size' => 14,
+      'slug' => 'small',
+    ),
+    array(
+      'name' => __( 'Medium', 'textdomain' ),
+      'size' => 18,
+      'slug' => 'medium',
+    ),
+    array(
+      'name' => __( 'Large', 'textdomain' ),
+      'size' => 24,
+      'slug' => 'large',
+    ),
+  );
+
+  // Disable custom colors and font sizes
+  $settings['disableCustomColors'] = true;
+  $settings['disableCustomFontSizes'] = true;
+
+  return $settings;
+}
+```
+
+## Context-Aware Customization
+
+Customize based on post type or template:
+
+```php
+add_filter( 'allowed_block_types_all', 'customize_blocks_by_context', 10, 2 );
+
+function customize_blocks_by_context( $allowed_blocks, $editor_context ) {
+  // Different blocks for different post types
+  if ( ! empty( $editor_context->post ) ) {
+    $post_type = $editor_context->post->post_type;
+
+    if ( 'product' === $post_type ) {
+      return array(
+        'core/paragraph',
+        'core/image',
+        'core/gallery',
+        'woocommerce/product-price',
+      );
+    }
+
+    if ( 'page' === $post_type ) {
+      return array(
+        'core/paragraph',
+        'core/heading',
+        'core/group',
+        'core/columns',
+      );
+    }
+  }
+
+  return $allowed_blocks;
+}
+```
+
+## Best Practices
+
+1. **Test thoroughly**: Customizations affect the editing experience - test with different user roles
+2. **Document your changes**: Explain why certain features are restricted
+3. **Consider accessibility**: Ensure customizations don't hinder content creation for users with disabilities
+4. **Use progressive enhancement**: Start with minimal restrictions and add more as needed
+5. **Provide feedback**: When restricting features, explain to users why certain options aren't available
+6. **Stay updated**: Block editor features evolve - review customizations with each WordPress update
+
+## Common Use Cases
+
+### Simplified Editor for Contributors
+
+```php
+add_filter( 'block_editor_settings_all', 'simplified_editor_for_contributors' );
+
+function simplified_editor_for_contributors( $settings ) {
+  if ( ! current_user_can( 'edit_theme_options' ) ) {
+    $settings['codeEditingEnabled'] = false;
+    $settings['fontLibraryEnabled'] = false;
+    $settings['enableBlockInspectorTabs'] = false;
+    $settings['canLockBlocks'] = false;
+  }
+  return $settings;
+}
+
+add_filter( 'allowed_block_types_all', 'basic_blocks_for_contributors', 10, 2 );
+
+function basic_blocks_for_contributors( $allowed_blocks, $editor_context ) {
+  if ( ! current_user_can( 'edit_theme_options' ) ) {
+    return array(
+      'core/paragraph',
+      'core/heading',
+      'core/list',
+      'core/image',
+    );
+  }
+  return $allowed_blocks;
+}
+```
+
+### Landing Page Template
+
+```php
+function register_landing_page_template() {
+  $post_type_object = get_post_type_object( 'page' );
+  $post_type_object->template = array(
+    array( 'core/cover', array(
+      'align' => 'full',
+      'placeholder' => 'Hero section',
+    ) ),
+    array( 'core/group', array(), array(
+      array( 'core/heading', array( 'placeholder' => 'Features section' ) ),
+      array( 'core/columns', array(), array(
+        array( 'core/column' ),
+        array( 'core/column' ),
+        array( 'core/column' ),
+      ) ),
+    ) ),
+  );
+}
+add_action( 'init', 'register_landing_page_template' );
+```
+
+## Next Steps
+
+- Learn about [Filters and Hooks](/guides/filters-and-hooks) for advanced customization
+- Explore [Theme.json Configuration](/guides/theme-json) for design system control
+- Read about [Data Management](/guides/data-management) for dynamic features

@@ -1,0 +1,162 @@
+---
+title: '@wordpress/components'
+description: 'UI components for building WordPress interfaces'
+---
+
+The `@wordpress/components` package provides a library of generic WordPress components for creating common UI elements shared between screens and features of the WordPress dashboard.
+
+## Installation
+
+Install the package using npm:
+
+```bash
+npm install @wordpress/components --save
+```
+
+<Note>
+This package assumes that your code will run in an **ES2015+** environment. If you're using an environment with limited support for such language features, include the polyfill shipped in `@wordpress/babel-preset-default`.
+</Note>
+
+## Basic Usage
+
+You can import components from the package root:
+
+```jsx
+import { Button } from '@wordpress/components';
+
+export default function MyButton() {
+	return <Button>Click Me!</Button>;
+}
+```
+
+## Styling Components
+
+Many components include CSS to add styles. You need to load these styles for components to appear correctly.
+
+### In WordPress
+
+Add the `wp-components` stylesheet as a dependency of your plugin's stylesheet:
+
+```php
+wp_enqueue_style(
+	'my-plugin-styles',
+	'path/to/my-styles.css',
+	[ 'wp-components' ]
+);
+```
+
+### Outside WordPress
+
+Link directly to the built stylesheet:
+
+```html
+<link rel="stylesheet" href="node_modules/@wordpress/components/build-style/style.css" />
+```
+
+## TypeScript Support
+
+This package exports types for the components it provides. Extract props types using `React.ComponentProps`:
+
+```tsx
+import type { ComponentProps } from 'react';
+import { Button } from '@wordpress/components';
+
+export default function MyButton( props: ComponentProps< typeof Button > ) {
+	return <Button { ...props }>Click Me!</Button>;
+}
+```
+
+## Working with Popovers
+
+By default, the `Popover` component renders within an extra element appended to the document body. You can control where popovers render using `Popover.Slot`:
+
+```jsx
+import { Popover, SlotFillProvider } from '@wordpress/components';
+import { MyComponentWithPopover } from './my-component';
+
+const Example = () => {
+	return (
+		<SlotFillProvider>
+			<MyComponentWithPopover />
+			<Popover.Slot />
+		</SlotFillProvider>
+	);
+};
+```
+
+## Key Components
+
+<CardGroup cols={2}>
+
+<Card title="Button" icon="hand-pointer" href="https://wordpress.github.io/gutenberg/?path=/docs/components-button--docs">
+Clickable buttons for triggering actions
+</Card>
+
+<Card title="TextControl" icon="input-text" href="https://wordpress.github.io/gutenberg/?path=/docs/components-textcontrol--docs">
+Standard text input fields
+</Card>
+
+<Card title="SelectControl" icon="list" href="https://wordpress.github.io/gutenberg/?path=/docs/components-selectcontrol--docs">
+Dropdown select menus
+</Card>
+
+<Card title="CheckboxControl" icon="check-square" href="https://wordpress.github.io/gutenberg/?path=/docs/components-checkboxcontrol--docs">
+Checkbox inputs with labels
+</Card>
+
+<Card title="Panel" icon="panel-left" href="https://wordpress.github.io/gutenberg/?path=/docs/components-panel--docs">
+Collapsible panels for organizing content
+</Card>
+
+<Card title="Modal" icon="window" href="https://wordpress.github.io/gutenberg/?path=/docs/components-modal--docs">
+Dialog modals for focused interactions
+</Card>
+
+</CardGroup>
+
+## Form Components
+
+<Note>
+If you're building a form to edit items in a dataset (rather than simply submitting data), consider using `DataForm` from the `@wordpress/dataviews` package.
+
+For adding validation, use the [Validated Form Components](https://github.com/WordPress/gutenberg/tree/HEAD/packages/components/src/validated-form-controls).
+</Note>
+
+## Component Status
+
+<Warning>
+This package is currently transitioning components to the new `@wordpress/ui` package. Some components may be deprecated or removed in the future.
+
+Check the component status documentation in each Storybook file for up-to-date usage guidance. The status given in Storybook should be considered the most accurate signal, above the `experimental` tag or component prefix.
+</Warning>
+
+## Documentation & Examples
+
+Browse the complete component library with interactive examples:
+
+**[View Storybook Documentation →](https://wordpress.github.io/gutenberg/)**
+
+## Peer Dependencies
+
+This package requires React as a peer dependency:
+
+<CodeGroup>
+
+```json package.json
+{
+	"peerDependencies": {
+		"react": "^18.0.0",
+		"react-dom": "^18.0.0"
+	}
+}
+```
+
+</CodeGroup>
+
+Make sure you have React 18.0.0 or higher installed in your project.
+
+## Related Packages
+
+- [`@wordpress/compose`](/packages/compose) - Higher-order components and hooks used by components
+- [`@wordpress/element`](/packages/element) - React abstraction layer
+- [`@wordpress/icons`](/packages/icons) - Icon library used in components

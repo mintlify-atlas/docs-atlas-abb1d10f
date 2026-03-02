@@ -1,0 +1,379 @@
+---
+title: '@wordpress/edit-widgets'
+description: 'Block-based widgets editor screen with legacy widget compatibility'
+---
+
+## Overview
+
+The `@wordpress/edit-widgets` package provides the block-based Widgets editor screen for WordPress. It bridges the gap between traditional widgets and modern blocks, allowing you to use both in widget areas while maintaining full backward compatibility.
+
+<Note>
+  This package is designed for WordPress core and may not be fully documented for external use. However, you can use it in your own projects with the understanding that APIs may evolve.
+</Note>
+
+## Three-Layer Architecture
+
+The Widgets editor follows the same three-layer architecture as other WordPress editors:
+
+```
+block-editor (WordPress-agnostic, generic editing)
+    ↓
+editor (WordPress entity-aware functionality) 
+    ↓
+edit-widgets (Widgets editor screen with widget areas)
+```
+
+### Layer Responsibilities
+
+- **`@wordpress/block-editor`** - Generic block editing canvas. Provides the foundation for block manipulation.
+- **`@wordpress/editor`** - WordPress entity management. Handles entity persistence and data operations.
+- **`@wordpress/edit-widgets`** - Widgets screen implementation. Manages widget areas (sidebars), widget-to-block translation, and legacy widget compatibility.
+
+<Warning>
+  The widgets editor must bridge two worlds: traditional widgets and modern blocks. This package contains translation mechanisms to ensure both work seamlessly together.
+</Warning>
+
+## Installation
+
+Install the package via npm:
+
+```bash
+npm install @wordpress/edit-widgets
+```
+
+**Environment Requirements:**
+
+This package requires an ES2015+ environment. If you're targeting older environments, include the polyfill from `@wordpress/babel-preset-default`.
+
+## How the Widgets Editor Works
+
+The new Widgets editor in WordPress admin is another block editor, just like the post editor or site editor. However, it has a unique challenge: it must support both Gutenberg blocks and traditional widgets.
+
+### The Translation Mechanism
+
+To support both widgets and blocks, the editor employs a bidirectional translation mechanism:
+
+#### Widget Block (Widgets as Blocks)
+
+A **widget block** acts as a block UI wrapper for widget data. This allows traditional widgets to be edited within the block editor:
+
+- **Edit Mode** - Shows the standard widget form (the same form you'd see in the old widgets screen)
+- **Preview Mode** - Displays a server-side render of the widget output
+
+```
+Traditional Widget → Widget Block → Editable in Block Editor
+```
+
+#### Block Widget (Blocks as Widgets)
+
+A **block widget** acts as a storage mechanism for blocks added to widget areas. This is a special HTML widget that stores block markup:
+
+- All blocks added to widget areas are stored as these special HTML widgets
+- The block data is stored as it's rendered by the block's save function
+- This ensures complete compatibility with the old widgets screen
+
+```
+Gutenberg Block → Block Widget (HTML Widget) → Stored in Database
+```
+
+<Info>
+  This dual translation mechanism ensures 100% compatibility with the old widgets screen. If the block-based editor breaks some widget functionality, you can easily revert to the old screen and continue editing legacy widgets.
+</Info>
+
+## Widget Areas (Sidebars)
+
+The widgets editor manages widget areas, also known as sidebars:
+
+```js
+import { useSelect, useDispatch } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+
+// Get all widget areas
+const widgetAreas = useSelect((select) => {
+  return select(coreStore).getEntityRecords('root', 'sidebar', {
+    per_page: -1,
+  });
+}, []);
+
+// Get widgets in a specific area
+const widgets = useSelect((select) => {
+  return select(coreStore).getEntityRecords('root', 'widget', {
+    sidebar: 'sidebar-1',
+  });
+}, []);
+```
+
+### Adding Widgets to Areas
+
+```js
+import { useDispatch } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+
+const { saveEntityRecord } = useDispatch(coreStore);
+
+// Add a new widget to an area
+await saveEntityRecord('root', 'widget', {
+  sidebar: 'sidebar-1',
+  id_base: 'text',
+  instance: {
+    encoded: btoa(JSON.stringify({
+      title: 'My Text Widget',
+      text: 'Widget content here',
+    })),
+  },
+});
+```
+
+## REST API Endpoints
+
+The widgets editor uses several dedicated REST API endpoints:
+
+### Widgets Endpoint (`/wp/v2/widgets`)
+
+Used to:
+- Load and save widgets
+- Retrieve server-side render of widget edit forms
+- Manage widget instances
+
+### Sidebars Endpoint (`/wp/v2/sidebars`)
+
+Used to:
+- List available widget areas
+- Assign widgets to widget areas
+- Remove widgets from widget areas
+
+### Widget Types Endpoint (`/wp/v2/widget-types`)
+
+Used to:
+- List available widget types (e.g., text widget, calendar widget)
+- Get widget type information and capabilities
+- Determine which widgets support block transformations
+
+## Widget Block Variations
+
+To make the experience seamless for users, the widgets editor automatically registers widget block variations:
+
+```js
+// For every available widget, a variation is registered
+// For example, a "Text Widget" variation, "Calendar Widget" variation, etc.
+```
+
+This means users can:
+- Search for widgets by their exact name
+- Insert widgets using the block inserter
+- See familiar widget names instead of generic "Widget" block
+
+### Hiding Redundant Widgets
+
+Widgets that have block equivalents can be hidden to avoid confusion:
+
+```js
+// Core widgets with block equivalents are automatically hidden
+// For example:
+// - Archives Widget → Archives Block
+// - Categories Widget → Categories Block  
+// - Calendar Widget → Calendar Block
+// - RSS Widget → RSS Block
+```
+
+You can control this behavior using filters:
+
+```php
+// In your theme or plugin
+add_filter('widget_types_to_hide_from_legacy_widget_block', function($widgets) {
+  $widgets[] = 'my_custom_widget'; // Hide your custom widget
+  return $widgets;
+});
+```
+
+<Note>
+  All core widgets that have block equivalents are automatically hidden in the widgets editor. Users should use the block versions for better compatibility and features.
+</Note>
+
+## Legacy Widget Compatibility
+
+The widgets editor provides full backward compatibility:
+
+### Widget Form Integration
+
+Traditional widget forms are embedded within the block editor:
+
+1. User inserts a widget block and selects a widget type
+2. The editor loads the widget's edit form via AJAX
+3. The form is rendered within the block editor interface
+4. Changes are auto-saved as the user edits
+5. Widget data is stored in the traditional widget format
+
+### Fallback to Classic Widgets Screen
+
+If you encounter compatibility issues:
+
+```php
+// Disable the block-based widgets editor
+add_filter('use_widgets_block_editor', '__return_false');
+```
+
+This reverts to the classic widgets screen while preserving all widget data.
+
+<Warning>
+  If the new widgets editor breaks widget functionality that depends on specific HTML structure or jQuery events, you can safely revert to the old screen without losing data.
+</Warning>
+
+## Block Editor Settings
+
+You can customize the widgets editor behavior:
+
+```js
+const widgetEditorSettings = {
+  // Disable certain blocks in widget areas
+  allowedBlockTypes: [
+    'core/paragraph',
+    'core/heading',
+    'core/image',
+    'core/list',
+    // ... other allowed blocks
+  ],
+  
+  // Disable block templates
+  template: null,
+  
+  // Widget-specific settings
+  widgetAreas: [
+    {
+      id: 'sidebar-1',
+      name: 'Primary Sidebar',
+      description: 'Main sidebar area',
+    },
+  ],
+};
+```
+
+## Working with Widget Data
+
+Widget data follows a specific structure:
+
+```js
+import { useSelect, useDispatch } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+
+// Read widget data
+const widget = useSelect((select) => {
+  return select(coreStore).getEntityRecord('root', 'widget', widgetId);
+}, [widgetId]);
+
+// Widget object structure:
+// {
+//   id: 'text-1',
+//   id_base: 'text',
+//   sidebar: 'sidebar-1',
+//   rendered: '<div>...</div>',
+//   rendered_form: '<form>...</form>',
+//   instance: {
+//     encoded: 'base64-encoded-data',
+//     hash: 'hash-value',
+//     raw: { title: '...', text: '...' }
+//   }
+// }
+
+// Update widget
+const { editEntityRecord, saveEditedEntityRecord } = useDispatch(coreStore);
+
+editEntityRecord('root', 'widget', widgetId, {
+  instance: {
+    raw: {
+      title: 'Updated Widget Title',
+      text: 'Updated widget content',
+    },
+  },
+});
+
+await saveEditedEntityRecord('root', 'widget', widgetId);
+```
+
+## Batch Processing
+
+This package contains an experimental batch processing feature:
+
+<Warning>
+  The `core/__experimental-batch-processing` store is highly experimental and considered a private API. It may evolve or be removed in future versions.
+</Warning>
+
+```js
+import { useDispatch } from '@wordpress/data';
+
+// Access experimental batch processing (private API)
+const { processBatch } = useDispatch('core/__experimental-batch-processing');
+
+// Use for batch operations on multiple widgets
+```
+
+This feature may eventually become a separate `@wordpress/batch-processing` package.
+
+## Customizing Widget Areas
+
+You can programmatically manage widget areas:
+
+```php
+// Register a new widget area in your theme
+register_sidebar(array(
+  'name'          => 'Footer Widget Area',
+  'id'            => 'footer-1',
+  'description'   => 'Appears in the footer',
+  'before_widget' => '<div id="%1$s" class="widget %2$s">',
+  'after_widget'  => '</div>',
+  'before_title'  => '<h3 class="widget-title">',
+  'after_title'   => '</h3>',
+));
+```
+
+The widget area automatically appears in the widgets editor.
+
+## Common Use Cases
+
+### Migrating from Classic Widgets to Blocks
+
+To encourage users to migrate from widgets to blocks:
+
+1. Identify widgets with block equivalents
+2. Hide the legacy widgets using filters
+3. Provide documentation on equivalent blocks
+4. Consider creating custom blocks for specialized widgets
+
+### Supporting Custom Legacy Widgets
+
+If you have custom widgets that don't have block equivalents:
+
+```php
+// Ensure your widget is compatible
+class My_Custom_Widget extends WP_Widget {
+  public function form($instance) {
+    // Return proper form HTML
+    // The widgets editor will embed this form
+  }
+  
+  public function update($new_instance, $old_instance) {
+    // Sanitize and return updated instance
+  }
+  
+  public function widget($args, $instance) {
+    // Render widget output
+  }
+}
+```
+
+The widgets editor automatically supports your custom widget through the widget block wrapper.
+
+## Related Packages
+
+- [`@wordpress/block-editor`](/packages/block-editor) - Generic block editing functionality
+- [`@wordpress/editor`](/packages/editor) - WordPress entity-aware editor features  
+- [`@wordpress/core-data`](/packages/core-data) - WordPress entity management and REST API integration
+- [`@wordpress/widgets`](/packages/widgets) - Widget management utilities
+- [`@wordpress/interface`](/packages/interface) - Shared interface components
+
+## Resources
+
+- [GitHub Repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/edit-widgets)
+- [npm Package](https://www.npmjs.com/package/@wordpress/edit-widgets)
+- [Widget API Reference](https://developer.wordpress.org/themes/functionality/widgets/)
+- [Widget Block Documentation](https://developer.wordpress.org/block-editor/reference-guides/core-blocks/#widget)

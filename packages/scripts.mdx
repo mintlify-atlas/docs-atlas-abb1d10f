@@ -1,0 +1,735 @@
+---
+title: '@wordpress/scripts'
+description: 'Collection of reusable scripts for WordPress block development with zero configuration.'
+---
+
+`@wordpress/scripts` is a collection of reusable scripts tailored for WordPress development. Every tool comes with integrated recommended configuration, making it easy to set up modern JavaScript tooling without complex setup.
+
+## Installation
+
+You only need to install one npm module:
+
+```bash
+npm install @wordpress/scripts --save-dev
+```
+
+<Note>
+  This package requires Node.js version 18.12.0 or above and npm version 8.19.2 or above.
+</Note>
+
+## Setup
+
+Add the scripts to your `package.json` file. This example demonstrates the most common capabilities:
+
+```json package.json
+{
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start",
+    "format": "wp-scripts format",
+    "lint:css": "wp-scripts lint-style",
+    "lint:js": "wp-scripts lint-js",
+    "test:unit": "wp-scripts test-unit-js",
+    "test:e2e": "wp-scripts test-playwright",
+    "packages-update": "wp-scripts packages-update",
+    "plugin-zip": "wp-scripts plugin-zip"
+  }
+}
+```
+
+You can now run these commands using npm:
+
+```bash
+npm run build
+npm start
+npm run lint:js
+```
+
+## Available Scripts
+
+### build
+
+Transforms your code for production with optimized performance.
+
+```bash
+wp-scripts build
+```
+
+<Accordion title="Build Script Options">
+
+#### Basic Usage
+
+```json package.json
+{
+  "scripts": {
+    "build": "wp-scripts build",
+    "build:custom": "wp-scripts build entry-one.js entry-two.js --output-path=custom",
+    "build:copy-php": "wp-scripts build --webpack-copy-php",
+    "build:custom-directory": "wp-scripts build --source-path=custom-directory"
+  }
+}
+```
+
+Run the scripts:
+
+- `npm run build` - builds the code for production
+- `npm run build:custom` - builds with two entry points and custom output directory
+- `npm run build:copy-php` - builds and copies all PHP files to output directory
+- `npm run build:custom-directory` - builds using custom source directory
+
+#### Available Flags
+
+- `--webpack-bundle-analyzer` - enables visualization for webpack output files
+- `--webpack-copy-php` - copies all PHP files from source to output directory
+- `--webpack-no-externals` - disables scripts' assets generation and default externals
+- `--blocks-manifest` - generates PHP file with block metadata from all `block.json` files
+- `--source-path` - customizes the source directory (default: `src`)
+- `--output-path` - customizes the output directory (default: `build`)
+- `--experimental-modules` - enables experimental support for `viewScriptModule` field
+
+</Accordion>
+
+**Example Output:**
+
+```bash Terminal
+$ npm run build
+
+> build
+> wp-scripts build
+
+ℹ Compiling JavaScript...
+ℹ Compiling CSS...
+✔ Done in 2.5s
+```
+
+### start
+
+Transforms your code for development with automatic rebuilding on file changes.
+
+```bash
+wp-scripts start
+```
+
+<Accordion title="Start Script Options">
+
+#### Basic Usage
+
+```json package.json
+{
+  "scripts": {
+    "start": "wp-scripts start",
+    "start:hot": "wp-scripts start --hot",
+    "start:custom": "wp-scripts start entry-one.js entry-two.js --output-path=custom",
+    "start:copy-php": "wp-scripts start --webpack-copy-php"
+  }
+}
+```
+
+Run the scripts:
+
+- `npm start` - starts build for development
+- `npm run start:hot` - starts with Fast Refresh (auto-reload on changes)
+- `npm run start:custom` - starts with custom entry points and output
+- `npm run start:copy-php` - starts and copies PHP files
+
+#### Available Flags
+
+- `--hot` - enables Fast Refresh for automatic page reload (requires `SCRIPT_DEBUG` enabled)
+- `--no-watch` - starts build without starting the watcher
+- `--webpack-bundle-analyzer` - enables visualization for webpack output files
+- `--webpack-copy-php` - copies all PHP files from source to output
+- `--webpack-devtool` - controls source map generation
+- `--webpack-no-externals` - disables default externals
+- `--blocks-manifest` - generates PHP file with block metadata
+- `--source-path` - customizes source directory
+- `--output-path` - customizes output directory
+
+</Accordion>
+
+**Example Output:**
+
+```bash Terminal
+$ npm start
+
+> start
+> wp-scripts start
+
+ℹ Starting development server...
+ℹ Watching for file changes...
+✔ Compiled successfully in 1.2s
+```
+
+### format
+
+Enforces coding style guidelines by formatting source code in a consistent way.
+
+```bash
+wp-scripts format
+```
+
+<Steps>
+
+<Step title="Format entire project">
+  ```bash
+  npm run format
+  ```
+  Formats all files in the project (JavaScript, JSON, TypeScript, YAML).
+</Step>
+
+<Step title="Format specific directory">
+  ```bash
+  npm run format ./src
+  ```
+  Formats only files in the `src` directory.
+</Step>
+
+<Step title="Customize ignored files">
+  Create a `.prettierignore` file in your project root:
+  ```text .prettierignore
+  build
+  node_modules
+  vendor
+  *.min.js
+  ```
+</Step>
+
+</Steps>
+
+### lint-js
+
+Enforces coding style guidelines for JavaScript and TypeScript files.
+
+```bash
+wp-scripts lint-js
+```
+
+<CodeGroup>
+
+```json package.json
+{
+  "scripts": {
+    "lint:js": "wp-scripts lint-js",
+    "lint:js:src": "wp-scripts lint-js ./src"
+  }
+}
+```
+
+```bash Terminal
+# Lint all files
+npm run lint:js
+
+# Lint specific directory
+npm run lint:js:src
+
+# Lint specific file
+npx wp-scripts lint-js src/index.js
+```
+
+</CodeGroup>
+
+Uses [ESLint](https://eslint.org/) with the [@wordpress/eslint-plugin](https://www.npmjs.com/package/@wordpress/eslint-plugin) configuration.
+
+### lint-style
+
+Enforces coding style guidelines for CSS, PCSS, and SCSS files.
+
+```bash
+wp-scripts lint-style
+```
+
+<CodeGroup>
+
+```json package.json
+{
+  "scripts": {
+    "lint:style": "wp-scripts lint-style",
+    "lint:css:src": "wp-scripts lint-style 'src/**/*.css'"
+  }
+}
+```
+
+```bash Terminal
+# Lint all style files
+npm run lint:style
+
+# Lint specific CSS files
+npm run lint:css:src
+```
+
+</CodeGroup>
+
+Uses [Stylelint](https://stylelint.io/) with the [@wordpress/stylelint-config](https://www.npmjs.com/package/@wordpress/stylelint-config) configuration per WordPress CSS Coding Standards.
+
+### lint-pkg-json
+
+Enforces standards for `package.json` files.
+
+```bash
+wp-scripts lint-pkg-json
+```
+
+```json package.json
+{
+  "scripts": {
+    "lint:pkg-json": "wp-scripts lint-pkg-json"
+  }
+}
+```
+
+Uses [npm-package-json-lint](https://www.npmjs.com/package/npm-package-json-lint) with the [@wordpress/npm-package-json-lint-config](https://www.npmjs.com/package/@wordpress/npm-package-json-lint-config) configuration.
+
+### lint-md-docs
+
+Enforces markdown standards for documentation files.
+
+```bash
+wp-scripts lint-md-docs
+```
+
+```json package.json
+{
+  "scripts": {
+    "lint:md:docs": "wp-scripts lint-md-docs"
+  }
+}
+```
+
+Uses [markdownlint](https://github.com/DavidAnson/markdownlint) to enforce WordPress documentation standards.
+
+### test-unit-js
+
+Launches the unit test runner using Jest.
+
+```bash
+wp-scripts test-unit-js
+```
+
+<CodeGroup>
+
+```json package.json
+{
+  "scripts": {
+    "test:unit": "wp-scripts test-unit-js",
+    "test:unit:watch": "wp-scripts test-unit-js --watch",
+    "test:unit:debug": "wp-scripts --inspect-brk test-unit-js --runInBand --no-cache"
+  }
+}
+```
+
+```bash Terminal
+# Run all unit tests
+npm run test:unit
+
+# Run tests in watch mode
+npm run test:unit:watch
+
+# Run tests in debug mode
+npm run test:unit:debug
+```
+
+</CodeGroup>
+
+**Jest looks for test files with these naming conventions:**
+
+- Files with `.js`, `.jsx`, `.ts`, or `.tsx` suffix in `__tests__` folders
+- Files with `.js`, `.jsx`, `.ts`, or `.tsx` suffix in `test` folders
+- Files with `.test.js`, `.test.jsx`, `.test.ts`, or `.test.tsx` suffix
+
+### test-playwright
+
+Launches the Playwright end-to-end test runner.
+
+```bash
+wp-scripts test-playwright
+```
+
+<CodeGroup>
+
+```json package.json
+{
+  "scripts": {
+    "test:playwright": "wp-scripts test-playwright",
+    "test:playwright:debug": "wp-scripts test-playwright --debug"
+  }
+}
+```
+
+```bash Terminal
+# Run all tests
+npm run test:playwright
+
+# Run specific test file
+npm run test:playwright FILE_NAME
+
+# Run in debug mode
+npm run test:playwright:debug
+
+# Run with watch mode
+npm run test:playwright -- --watch
+```
+
+</CodeGroup>
+
+By default, looks for test files with `.test` or `.spec` suffix in the `/specs` folder.
+
+**Failed Test Artifacts:**
+
+When tests fail, snapshots are stored in the `artifacts/` directory. You can customize this location:
+
+```bash
+WP_ARTIFACTS_PATH=my/custom/artifacts npm run test:playwright
+```
+
+### test-e2e
+
+Launches the end-to-end test runner using Jest and Puppeteer.
+
+```bash
+wp-scripts test-e2e
+```
+
+<CodeGroup>
+
+```json package.json
+{
+  "scripts": {
+    "test:e2e": "wp-scripts test-e2e",
+    "test:e2e:debug": "wp-scripts --inspect-brk test-e2e --puppeteer-devtools"
+  }
+}
+```
+
+```bash Terminal
+# Run all e2e tests
+npm run test:e2e
+
+# Run interactively
+npm run test:e2e -- --puppeteer-interactive
+
+# Run specific file interactively
+npm run test:e2e FILE_NAME -- --puppeteer-interactive
+
+# Debug mode
+npm run test:e2e:debug
+```
+
+</CodeGroup>
+
+**Jest looks for e2e test files:**
+
+- Files with `.js`, `.jsx`, `.ts`, or `.tsx` suffix in `spec` folders
+- Files with `.spec.js`, `.spec.jsx`, `.spec.ts`, or `.spec.tsx` suffix
+
+### packages-update
+
+Updates WordPress packages to their latest version.
+
+```bash
+wp-scripts packages-update
+```
+
+<Accordion title="Packages Update Options">
+
+```json package.json
+{
+  "scripts": {
+    "packages-update": "wp-scripts packages-update",
+    "postpackages-update": "npm run build"
+  }
+}
+```
+
+The script detects dependencies starting with `@wordpress/` and updates them.
+
+#### Available Flags
+
+- `--dist-tag` - specifies custom dist-tag (default: `latest`)
+
+**Example:**
+
+```bash
+# Update to WordPress 6.0 versions
+wp-scripts packages-update --dist-tag=wp-6.0
+```
+
+</Accordion>
+
+### plugin-zip
+
+Creates a zip file for a WordPress plugin.
+
+```bash
+wp-scripts plugin-zip
+```
+
+<Accordion title="Plugin Zip Options">
+
+```json package.json
+{
+  "scripts": {
+    "plugin-zip": "wp-scripts plugin-zip"
+  }
+}
+```
+
+#### Available Flags
+
+- `--root-folder` - adds custom root folder to the zip file
+- `--no-root-folder` - creates zip with no folder inside
+
+**Examples:**
+
+```bash Terminal
+# Default - folder name matches plugin name
+npm run plugin-zip
+
+# Custom root folder name
+npm run plugin-zip -- --root-folder=custom-directory
+
+# No root folder
+npm run plugin-zip -- --no-root-folder
+```
+
+#### Customize Files
+
+You can customize included files using the `files` field in `package.json`:
+
+```json package.json
+{
+  "files": ["build", "src", "*.php"]
+}
+```
+
+</Accordion>
+
+### check-engines
+
+Checks if current Node.js and npm versions match the required semantic version ranges.
+
+```bash
+wp-scripts check-engines
+```
+
+```json package.json
+{
+  "scripts": {
+    "check-engines": "wp-scripts check-engines"
+  }
+}
+```
+
+**Example Output:**
+
+```bash Terminal
+$ npm run check-engines
+
+✔ node: 18.12.0
+✔ npm: 8.19.2
+```
+
+### check-licenses
+
+Validates that all dependencies are compatible with the project's license.
+
+```bash
+wp-scripts check-licenses
+```
+
+<Accordion title="Check Licenses Options">
+
+```json package.json
+{
+  "scripts": {
+    "check-licenses": "wp-scripts check-licenses --prod --gpl2 --ignore=abab"
+  }
+}
+```
+
+#### Available Flags
+
+- `--prod` or `--production` - validates only `dependencies` (not `devDependencies`)
+- `--dev` or `--development` - validates only `devDependencies` (not `dependencies`)
+- `--gpl2` - validates against GPLv2 license compatibility
+- `--ignore=a,b,c` - comma-separated list of package names to ignore
+
+</Accordion>
+
+### build-blocks-manifest
+
+Generates a PHP file containing block metadata from all `block.json` files.
+
+```bash
+wp-scripts build-blocks-manifest
+```
+
+<Steps>
+
+<Step title="Generate the manifest">
+  ```bash
+  wp-scripts build-blocks-manifest --input=src --output=dist/blocks-manifest.php
+  ```
+  
+  **Options:**
+  - `--input` - specify input directory (default: 'build')
+  - `--output` - specify output file path (default: 'build/blocks-manifest.php')
+</Step>
+
+<Step title="Use in your plugin">
+  ```php
+  wp_register_block_metadata_collection(
+      plugin_dir_path( __FILE__ ) . 'dist',
+      plugin_dir_path( __FILE__ ) . 'dist/blocks-manifest.php'
+  );
+  ```
+  
+  Or register all blocks automatically (WordPress 6.8+):
+  ```php
+  wp_register_block_types_from_metadata_collection(
+      plugin_dir_path( __FILE__ ) . 'dist',
+      plugin_dir_path( __FILE__ ) . 'dist/blocks-manifest.php'
+  );
+  ```
+</Step>
+
+</Steps>
+
+This improves performance when registering multiple block types (requires WordPress 6.7+).
+
+## Using Build Scripts
+
+### Entry Points
+
+The simplest way to specify entry points:
+
+```bash
+wp-scripts build entry-one.js entry-two.js
+```
+
+### Automatic block.json Detection
+
+The build script automatically scans the `src` directory for `block.json` files and uses their script fields as entry points:
+
+```json block.json
+{
+  "editorScript": "file:index.js",
+  "script": "file:script.js",
+  "viewScript": "file:view.js"
+}
+```
+
+Then simply run:
+
+```bash
+wp-scripts build
+```
+
+### Importing Styles
+
+You can import styles in your JavaScript files:
+
+```js index.js
+import './index.scss';
+import './style.css';
+```
+
+The build generates:
+
+1. `index.css` - styles for the editor only
+2. `style-index.css` - styles for both front-end and editor
+
+### Using SVG
+
+Import SVG files as React components or URLs:
+
+```js
+import starUrl, { ReactComponent as Star } from './star.svg';
+
+const App = () => (
+  <div>
+    <img src={starUrl} alt="star" />
+    <Star />
+  </div>
+);
+```
+
+## Advanced Configuration
+
+### Custom Webpack Config
+
+You can extend the default webpack config by creating a `webpack.config.js` file:
+
+```js webpack.config.js
+const defaultConfig = require('@wordpress/scripts/config/webpack.config');
+
+module.exports = {
+  ...defaultConfig,
+  module: {
+    ...defaultConfig.module,
+    rules: [
+      ...defaultConfig.module.rules,
+      {
+        test: /.toml/,
+        type: 'json',
+        parser: {
+          parse: require('toml').parse,
+        },
+      },
+    ],
+  },
+};
+```
+
+<Warning>
+  Continue using `wp-scripts` commands (not `webpack` directly) and check the CHANGELOG before upgrading.
+</Warning>
+
+## Debugging
+
+### Debugging Unit Tests
+
+<Steps>
+
+<Step title="Add debugger statement">
+  ```js
+  test('my test', () => {
+    debugger;
+    // your test code
+  });
+  ```
+</Step>
+
+<Step title="Run with inspector">
+  ```bash
+  wp-scripts --inspect-brk test-unit-js --runInBand --no-cache
+  ```
+</Step>
+
+<Step title="Open Chrome DevTools">
+  1. Open `about:inspect` in Google Chrome
+  2. Click "inspect" on your process
+  3. Click resume button to continue execution
+</Step>
+
+</Steps>
+
+### Debugging E2E Tests
+
+```bash
+# Enable devtools and inspector
+wp-scripts --inspect-brk test-e2e --puppeteer-devtools
+```
+
+The `--puppeteer-devtools` option launches the browser with devtools already open for debugging.
+
+## Package Information
+
+- **Version:** 31.5.0
+- **Node.js:** >= 18.12.0
+- **npm:** >= 8.19.2
+- **License:** GPL-2.0-or-later
+
+## Related Packages
+
+- [@wordpress/env](/packages/env) - Local WordPress environment
+- [@wordpress/create-block](/packages/create-block) - Block scaffolding tool
+- [@wordpress/e2e-test-utils-playwright](/packages/e2e-test-utils-playwright) - E2E testing utilities

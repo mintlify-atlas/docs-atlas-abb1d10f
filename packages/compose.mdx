@@ -1,0 +1,327 @@
+---
+title: '@wordpress/compose'
+description: 'Higher-order components and React hooks for WordPress'
+---
+
+The `@wordpress/compose` package provides a collection of handy [React Hooks](https://react.dev/reference/react/hooks) and [Higher Order Components](https://legacy.reactjs.org/docs/higher-order-components.html) (HOCs) you can use to wrap your WordPress components and provide basic features like state management, instance IDs, and more.
+
+## Installation
+
+Install the package using npm:
+
+```bash
+npm install @wordpress/compose --save
+```
+
+<Note>
+This package assumes that your code will run in an **ES2015+** environment. If you're using an environment with limited support for such language features, include the polyfill shipped in `@wordpress/babel-preset-default`.
+</Note>
+
+## The compose Function
+
+The `compose` function is inspired by [lodash's flowRight](https://lodash.com/docs/#flowRight) and allows you to compose any number of functions. It executes the last function first, then sequentially moves back through the previous functions, passing the result upward.
+
+Think of it as layering functions - each function wraps the result of the next:
+
+```js
+const compose = ( f, g ) => x => f( g( x ) );
+```
+
+### Example: Using compose
+
+Here's how you can use `compose` to combine multiple HOCs:
+
+<CodeGroup>
+
+```jsx With compose
+import { compose } from '@wordpress/compose';
+import { withSelect, withDispatch } from '@wordpress/data';
+
+const applyWithSelect = withSelect( ( select, ownProps ) => {
+	return doSomething( select, ownProps );
+} );
+
+const applyWithDispatch = withDispatch( ( dispatch, ownProps ) => {
+	return doSomethingElse( dispatch, ownProps );
+} );
+
+export default compose(
+	withPluginContext,
+	applyWithSelect,
+	applyWithDispatch
+)( PluginSidebarMoreMenuItem );
+```
+
+```jsx Without compose
+import { withSelect, withDispatch } from '@wordpress/data';
+
+const applyWithSelect = withSelect( ( select, ownProps ) => {
+	return doSomething( select, ownProps );
+} );
+
+const applyWithDispatch = withDispatch( ( dispatch, ownProps ) => {
+	return doSomethingElse( dispatch, ownProps );
+} );
+
+export default withPluginContext(
+	applyWithSelect( applyWithDispatch( PluginSidebarMoreMenuItem ) )
+);
+```
+
+</CodeGroup>
+
+## Popular Hooks
+
+### useInstanceId
+
+Provides a unique instance ID for component instances:
+
+```jsx
+import { useInstanceId } from '@wordpress/compose';
+
+function MyComponent( { prefix = 'field' } ) {
+	const id = useInstanceId( MyComponent, prefix );
+	return <input id={ id } />;
+}
+```
+
+### useDebounce
+
+Debounces a function similar to Lodash's debounce:
+
+```jsx
+import { useDebounce } from '@wordpress/compose';
+import { useState, useCallback } from '@wordpress/element';
+
+function SearchInput() {
+	const [ searchTerm, setSearchTerm ] = useState( '' );
+	
+	const debouncedSearch = useDebounce(
+		useCallback( ( value ) => {
+			// Perform search with value
+			console.log( 'Searching for:', value );
+		}, [] ),
+		500
+	);
+	
+	const handleChange = ( value ) => {
+		setSearchTerm( value );
+		debouncedSearch( value );
+	};
+	
+	return <input value={ searchTerm } onChange={ ( e ) => handleChange( e.target.value ) } />;
+}
+```
+
+### useFocusOnMount
+
+Determines focus behavior when an element mounts:
+
+```jsx
+import { useFocusOnMount } from '@wordpress/compose';
+
+function Dialog() {
+	const ref = useFocusOnMount();
+	return (
+		<div ref={ ref }>
+			<button>First Button</button>
+			<button>Second Button</button>
+		</div>
+	);
+}
+```
+
+### useMediaQuery
+
+Runs a media query and returns its value:
+
+```jsx
+import { useMediaQuery } from '@wordpress/compose';
+
+function ResponsiveComponent() {
+	const isMobile = useMediaQuery( '(max-width: 768px)' );
+	
+	return (
+		<div>
+			{ isMobile ? 'Mobile View' : 'Desktop View' }
+		</div>
+	);
+}
+```
+
+### useRefEffect
+
+Effect-like ref callback that allows cleanup:
+
+```jsx
+import { useRefEffect } from '@wordpress/compose';
+
+function ComponentWithEventListener() {
+	const ref = useRefEffect(
+		( node ) => {
+			const handleClick = () => console.log( 'Clicked!' );
+			node.addEventListener( 'click', handleClick );
+			
+			// Return cleanup function
+			return () => {
+				node.removeEventListener( 'click', handleClick );
+			};
+		},
+		[]
+	);
+	
+	return <div ref={ ref }>Click me!</div>;
+}
+```
+
+## Essential Hooks
+
+<CardGroup cols={2}>
+
+<Card title="useInstanceId" icon="fingerprint">
+Generate unique IDs for component instances
+</Card>
+
+<Card title="useDebounce" icon="clock">
+Debounce function calls to improve performance
+</Card>
+
+<Card title="useMediaQuery" icon="mobile">
+Responsive design with media query detection
+</Card>
+
+<Card title="useFocusOnMount" icon="arrow-pointer">
+Control focus behavior when components mount
+</Card>
+
+<Card title="useRefEffect" icon="link">
+Ref callbacks with cleanup capabilities
+</Card>
+
+<Card title="useResizeObserver" icon="maximize">
+Observe element size changes
+</Card>
+
+<Card title="useMergeRefs" icon="merge">
+Combine multiple refs into one callback
+</Card>
+
+<Card title="usePrevious" icon="history">
+Access previous render values
+</Card>
+
+</CardGroup>
+
+## Higher Order Components
+
+### withInstanceId
+
+Provides a unique instance ID via props:
+
+```jsx
+import { withInstanceId } from '@wordpress/compose';
+
+function MyComponent( { instanceId } ) {
+	return <div id={ `component-${ instanceId }` }>Content</div>;
+}
+
+export default withInstanceId( MyComponent );
+```
+
+### ifCondition
+
+Renders a component only if a condition is satisfied:
+
+```jsx
+import { ifCondition } from '@wordpress/compose';
+
+const Component = ( { foo } ) => <div>{ foo }</div>;
+
+const ConditionalComponent = ifCondition(
+	( { foo } ) => foo.length !== 0
+)( Component );
+
+// <ConditionalComponent foo="" /> renders null
+// <ConditionalComponent foo="bar" /> renders <div>bar</div>
+```
+
+## Utility Functions
+
+### createHigherOrderComponent
+
+Creates a higher-order component with a generated display name:
+
+```jsx
+import { createHigherOrderComponent } from '@wordpress/compose';
+
+const withCustomBehavior = createHigherOrderComponent(
+	( WrappedComponent ) => {
+		return ( props ) => {
+			// Add custom behavior
+			return <WrappedComponent { ...props } customProp="value" />;
+		};
+	},
+	'withCustomBehavior'
+);
+```
+
+### debounce
+
+Creates a debounced function:
+
+```jsx
+import { debounce } from '@wordpress/compose';
+
+const debouncedSave = debounce(
+	( value ) => {
+		// Save value
+		console.log( 'Saving:', value );
+	},
+	500,
+	{ leading: false, trailing: true }
+);
+```
+
+### throttle
+
+Creates a throttled function:
+
+```jsx
+import { throttle } from '@wordpress/compose';
+
+const throttledScroll = throttle(
+	() => {
+		// Handle scroll
+		console.log( 'Scrolling' );
+	},
+	100
+);
+```
+
+## Peer Dependencies
+
+This package requires React as a peer dependency:
+
+<CodeGroup>
+
+```json package.json
+{
+	"peerDependencies": {
+		"react": "^18.0.0"
+	}
+}
+```
+
+</CodeGroup>
+
+Make sure you have React 18.0.0 or higher installed in your project.
+
+## API Reference
+
+For complete API documentation of all hooks and HOCs, visit the [GitHub repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/compose/src).
+
+## Related Packages
+
+- [`@wordpress/element`](/packages/element) - React abstraction layer
+- [`@wordpress/components`](/packages/components) - UI components that use these hooks
+- [`@wordpress/data`](/packages/data) - Data management layer

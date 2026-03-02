@@ -1,0 +1,548 @@
+---
+title: Data Layer
+description: State management and the data layer in WordPress Gutenberg using @wordpress/data
+---
+
+## Introduction to the data layer
+
+The WordPress data module (`@wordpress/data`) serves as a centralized hub for managing application state. It provides tools to manage data within and between distinct modules, designed to be simple enough for small plugins yet scalable for complex single-page applications.
+
+<Info>
+The data module is built upon and shares many core principles with Redux, but includes several distinguishing characteristics that make it unique.
+</Info>
+
+## Installation
+
+Install the data package:
+
+```bash
+npm install @wordpress/data --save
+```
+
+## Core architectural principle
+
+The data layer follows a key architectural decision:
+
+<Note>
+**Data layer principle**: Use `@wordpress/data` (Redux-like stores). Edit entities through `core-data` actions (`editEntityRecord` / `saveEditedEntityRecord`), not direct state manipulation.
+</Note>
+
+## Registering a store
+
+Create and register a store using `createReduxStore` and `register`:
+
+```js
+import { createReduxStore, register } from '@wordpress/data';
+import apiFetch from '@wordpress/api-fetch';
+
+const DEFAULT_STATE = {
+  prices: {},
+  discountPercent: 0,
+};
+
+const actions = {
+  setPrice( item, price ) {
+    return {
+      type: 'SET_PRICE',
+      item,
+      price,
+    };
+  },
+  startSale( discountPercent ) {
+    return {
+      type: 'START_SALE',
+      discountPercent,
+    };
+  },
+};
+
+const store = createReduxStore( 'my-shop', {
+  reducer( state = DEFAULT_STATE, action ) {
+    switch ( action.type ) {
+      case 'SET_PRICE':
+        return {
+          ...state,
+          prices: {
+            ...state.prices,
+            [ action.item ]: action.price,
+          },
+        };
+      case 'START_SALE':
+        return {
+          ...state,
+          discountPercent: action.discountPercent,
+        };
+    }
+    return state;
+  },
+  actions,
+  selectors: {
+    getPrice( state, item ) {
+      const { prices, discountPercent } = state;
+      const price = prices[ item ];
+      return price * ( 1 - 0.01 * discountPercent );
+    },
+  },
+  resolvers: {
+    getPrice: ( item ) => async ( { dispatch } ) => {
+      const path = '/wp/v2/prices/' + item;
+      const price = await apiFetch( { path } );
+      dispatch.setPrice( item, price );
+    },
+  },
+} );
+
+register( store );
+```
+
+## Store configuration options
+
+### Reducer
+
+A **reducer** is a function that accepts the previous `state` and `action` and returns an updated `state` value:
+
+```js
+function reducer( state = DEFAULT_STATE, action ) {
+  switch ( action.type ) {
+    case 'SET_PRICE':
+      return { ...state, prices: { ...state.prices, [ action.item ]: action.price } };
+    default:
+      return state;
+  }
+}
+```
+
+<Tip>
+Reducers must be pure functions—no side effects, no API calls, just state transformations.
+</Tip>
+
+### Actions
+
+The **actions** object describes all action creators available for your store:
+
+```js
+const actions = {
+  setPrice( item, price ) {
+    return { type: 'SET_PRICE', item, price };
+  },
+};
+```
+
+<Note>
+Dispatching actions is the primary mechanism for making changes to your state.
+</Note>
+
+### Selectors
+
+The **selectors** object includes functions for accessing and deriving state values:
+
+```js
+const selectors = {
+  getPrice( state, item ) {
+    return state.prices[ item ];
+  },
+  getTotalValue( state ) {
+    return Object.values( state.prices ).reduce( ( sum, price ) => sum + price, 0 );
+  },
+};
+```
+
+<Info>
+Calling selectors is the primary mechanism for retrieving data from your state. They provide abstraction over raw data that's typically more susceptible to change.
+</Info>
+
+### Resolvers
+
+A **resolver** is a side-effect for a selector. If your selector result needs fulfillment from an external source, define a resolver:
+
+```js
+const resolvers = {
+  getPrice: ( item ) => async ( { dispatch } ) => {
+    const price = await apiFetch( { path: `/wp/v2/prices/${ item }` } );
+    dispatch.setPrice( item, price );
+  },
+};
+```
+
+Resolvers:
+- Execute the first time a selector is called
+- Receive the same arguments as the selector (excluding state)
+- Can dispatch actions to fulfill selector requirements
+- Work with thunks for asynchronous data flows
+
+## Using stores with React hooks
+
+### useSelect - Reading data
+
+Retrieve data from stores using `useSelect`:
+
+```js
+import { useSelect } from '@wordpress/data';
+import { store as blockEditorStore } from '@wordpress/block-editor';
+
+function BlockCount() {
+  const count = useSelect(
+    ( select ) => select( blockEditorStore ).getBlockCount(),
+    []
+  );
+  return <div>Block count: { count }</div>;
+}
+```
+
+With dependencies:
+
+```js
+function HammerPriceDisplay( { currency } ) {
+  const price = useSelect(
+    ( select ) => select( 'my-shop' ).getPrice( 'hammer', currency ),
+    [ currency ]
+  );
+  return new Intl.NumberFormat( 'en-US', {
+    style: 'currency',
+    currency,
+  } ).format( price );
+}
+```
+
+<Tip>
+The dependencies array (`[ currency ]`) ensures the selector only re-runs when those values change.
+</Tip>
+
+### useDispatch - Writing data
+
+Dispatch actions using `useDispatch`:
+
+```js
+import { useDispatch, useSelect } from '@wordpress/data';
+
+function SaleButton() {
+  const { stockNumber } = useSelect(
+    ( select ) => ( { stockNumber: select( 'my-shop' ).getStockNumber() } ),
+    []
+  );
+  const { startSale } = useDispatch( 'my-shop' );
+
+  const onClick = useCallback( () => {
+    const discountPercent = stockNumber > 50 ? 10 : 20;
+    startSale( discountPercent );
+  }, [ stockNumber, startSale ] );
+
+  return <button onClick={ onClick }>Start Sale!</button>;
+}
+```
+
+### useRegistry - Accessing the registry
+
+Access the registry directly for advanced use cases:
+
+```js
+import { useRegistry } from '@wordpress/data';
+
+function Component() {
+  const registry = useRegistry();
+
+  function handleComplexUpdate() {
+    registry.batch( () => {
+      registry.dispatch( 'my-shop' ).setPrice( 'hammer', 9.75 );
+      registry.dispatch( 'my-shop' ).setPrice( 'nail', 0.25 );
+      registry.dispatch( 'my-shop' ).startSale( 15 );
+    } );
+  }
+
+  return <button onClick={ handleComplexUpdate }>Update</button>;
+}
+```
+
+## Higher-order components
+
+### withSelect - Injecting data
+
+```js
+import { withSelect } from '@wordpress/data';
+
+function PriceDisplay( { price, currency } ) {
+  return new Intl.NumberFormat( 'en-US', {
+    style: 'currency',
+    currency,
+  } ).format( price );
+}
+
+const HammerPriceDisplay = withSelect( ( select, ownProps ) => {
+  const { getPrice } = select( 'my-shop' );
+  const { currency } = ownProps;
+
+  return {
+    price: getPrice( 'hammer', currency ),
+  };
+} )( PriceDisplay );
+```
+
+### withDispatch - Injecting actions
+
+```js
+import { withDispatch } from '@wordpress/data';
+
+function Button( { onClick, children } ) {
+  return <button onClick={ onClick }>{ children }</button>;
+}
+
+const SaleButton = withDispatch( ( dispatch, ownProps ) => {
+  const { startSale } = dispatch( 'my-shop' );
+  const { discountPercent } = ownProps;
+
+  return {
+    onClick() {
+      startSale( discountPercent );
+    },
+  };
+} )( Button );
+```
+
+## Core WordPress data stores
+
+WordPress provides several built-in stores:
+
+<Accordion title="Core data stores">
+
+- **`core/blocks`** - Registered block types and block collections
+- **`core/block-editor`** - Block editor state (selected blocks, settings, preferences)
+- **`core/editor`** - Post editor state (current post, saving status, etc.)
+- **`core`** (core-data) - WordPress entities via REST API (posts, pages, media, etc.)
+- **`core/notices`** - User-facing notices and snackbars
+- **`core/viewport`** - Responsive breakpoints and device information
+
+</Accordion>
+
+## Working with core-data
+
+The `core` store (core-data) manages WordPress entities:
+
+```js
+import { useSelect, useDispatch } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+
+function PostEditor( { postId } ) {
+  const post = useSelect(
+    ( select ) => select( coreStore ).getEntityRecord( 'postType', 'post', postId ),
+    [ postId ]
+  );
+
+  const { editEntityRecord, saveEditedEntityRecord } = useDispatch( coreStore );
+
+  const updateTitle = ( title ) => {
+    editEntityRecord( 'postType', 'post', postId, { title } );
+  };
+
+  const save = () => {
+    saveEditedEntityRecord( 'postType', 'post', postId );
+  };
+
+  return (
+    <div>
+      <input value={ post?.title } onChange={ ( e ) => updateTitle( e.target.value ) } />
+      <button onClick={ save }>Save</button>
+    </div>
+  );
+}
+```
+
+<Note>
+Always use `editEntityRecord` and `saveEditedEntityRecord` for editing entities, not direct state manipulation.
+</Note>
+
+## Batching updates
+
+Use `registry.batch()` to batch multiple store updates:
+
+```js
+import { useRegistry } from '@wordpress/data';
+
+function Component() {
+  const registry = useRegistry();
+
+  function handleComplexUpdate() {
+    // Without batch: listeners called 3 times, multiple re-renders
+    // With batch: listeners called once, single re-render
+    registry.batch( () => {
+      registry.dispatch( 'my-shop' ).setPrice( 'hammer', 9.75 );
+      registry.dispatch( 'my-shop' ).setPrice( 'nail', 0.25 );
+      registry.dispatch( 'my-shop' ).startSale( 15 );
+    } );
+  }
+
+  return <button onClick={ handleComplexUpdate }>Update</button>;
+}
+```
+
+<Tip>
+Batching is particularly effective for expensive selectors, atomic operations across stores, and creating single undo/redo entries.
+</Tip>
+
+## Resolution state selectors
+
+Track resolver execution state:
+
+```js
+import { useSelect } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+
+function Component() {
+  const { pages, isResolving, hasResolved } = useSelect( ( select ) => {
+    const selectorArgs = [ 'postType', 'page', { per_page: 20 } ];
+
+    return {
+      pages: select( coreStore ).getEntityRecords( ...selectorArgs ),
+      isResolving: select( coreStore ).isResolving(
+        'getEntityRecords',
+        selectorArgs
+      ),
+      hasResolved: select( coreStore ).hasFinishedResolution(
+        'getEntityRecords',
+        selectorArgs
+      ),
+    };
+  } );
+
+  if ( isResolving ) {
+    return <Spinner />;
+  }
+
+  if ( hasResolved && ! pages?.length ) {
+    return <EmptyState />;
+  }
+
+  return <PageList pages={ pages } />;
+}
+```
+
+## Registry selectors
+
+Create selectors that access other stores:
+
+```js
+import { createRegistrySelector } from '@wordpress/data';
+import { store as editorStore } from '@wordpress/editor';
+import { store as coreStore } from '@wordpress/core-data';
+
+const getPostEdits = createRegistrySelector( ( select ) => ( state ) => {
+  const postType = select( editorStore ).getCurrentPostType();
+  const postId = select( editorStore ).getCurrentPostId();
+
+  return select( coreStore ).getEntityRecordEdits(
+    'postType',
+    postType,
+    postId
+  );
+} );
+```
+
+<Info>
+Registry selectors can call selectors from other stores, enabling cross-store data derivation.
+</Info>
+
+## Comparison with Redux
+
+The data module shares Redux core principles but differs in:
+
+### Similarities
+- Unidirectional data flow
+- Pure reducer functions
+- Action-based state updates
+- Selector-based data access
+
+### Differences
+
+<Accordion title="Key differences from Redux">
+
+1. **Modular stores**: Separate but interdependent stores instead of a single global store
+2. **Selectors as primary API**: Selectors are the main entry point for data access
+3. **Built-in async handling**: Resolvers and thunks for asynchronous operations
+4. **Subscribe optimizations**: Subscribers only called when state actually changes
+5. **Split HOCs**: `withSelect` and `withDispatch` instead of single `connect`
+
+</Accordion>
+
+## Async data flows
+
+Handle asynchronous operations with thunks:
+
+```js
+const actions = {
+  fetchPrice: ( item ) => async ( { dispatch, select, registry } ) => {
+    dispatch.setLoading( item, true );
+
+    try {
+      const price = await apiFetch( { path: `/wp/v2/prices/${ item }` } );
+      dispatch.setPrice( item, price );
+    } catch ( error ) {
+      dispatch.setError( item, error.message );
+    } finally {
+      dispatch.setLoading( item, false );
+    }
+  },
+};
+```
+
+<Tip>
+Thunks receive `dispatch`, `select`, and `registry` as arguments, enabling complex async workflows.
+</Tip>
+
+## Generic stores
+
+Integrate existing Redux stores or create completely custom stores:
+
+```js
+import { register } from '@wordpress/data';
+
+const customStore = {
+  name: 'custom-data',
+  instantiate: () => {
+    const listeners = new Set();
+    const prices = { hammer: 7.5 };
+
+    function subscribe( listener ) {
+      listeners.add( listener );
+      return () => listeners.delete( listener );
+    }
+
+    return {
+      getSelectors: () => ({
+        getPrice( itemName ) {
+          return prices[ itemName ];
+        },
+      }),
+      getActions: () => ({
+        setPrice( itemName, price ) {
+          prices[ itemName ] = price;
+          listeners.forEach( ( listener ) => listener() );
+        },
+      }),
+      subscribe,
+    };
+  },
+};
+
+register( customStore );
+```
+
+## Best practices
+
+<Accordion title="Data layer best practices">
+
+1. **Use selectors for all data access** - Never access state directly
+2. **Keep reducers pure** - No side effects, API calls, or mutations
+3. **Use resolvers for data fetching** - Let resolvers handle async operations
+4. **Batch related updates** - Use `registry.batch()` for multiple dispatches
+5. **Memoize expensive selectors** - Use `createSelector` for computed data
+6. **Define clear dependencies** - Always specify dependency arrays in hooks
+7. **Edit entities correctly** - Use `editEntityRecord` for core-data entities
+8. **Track resolution state** - Use resolution selectors for loading states
+
+</Accordion>
+
+## Next steps
+
+- Learn about [Components](/concepts/components) for building UIs
+- Explore [Block Editor Architecture](/concepts/block-editor-architecture)
+- Understand [Extensibility](/concepts/extensibility) patterns
+- Deep dive into [Blocks](/concepts/blocks)

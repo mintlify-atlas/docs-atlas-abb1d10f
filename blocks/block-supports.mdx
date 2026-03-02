@@ -1,0 +1,823 @@
+---
+title: Block Supports API
+description: Enable editor features like colors, spacing, and typography automatically using the Block Supports API
+---
+
+The Block Supports API allows blocks to declare support for certain editor features. When you enable a support feature, the editor automatically:
+
+1. Registers additional attributes on the block
+2. Provides UI controls in the editor
+3. Applies the settings through `useBlockProps`
+
+This eliminates the need to manually build controls for common features.
+
+## How Block Supports Work
+
+Declare supports in your `block.json`:
+
+```json
+{
+    "supports": {
+        "color": {
+            "background": true,
+            "text": true,
+            "gradients": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true
+        }
+    }
+}
+```
+
+Then use `useBlockProps` to apply the generated properties:
+
+<CodeGroup>
+```jsx Edit Function
+import { useBlockProps } from '@wordpress/block-editor';
+
+function BlockEdit() {
+    const blockProps = useBlockProps();
+    // All support features are automatically applied
+    return <div { ...blockProps }>Hello World!</div>;
+}
+```
+
+```jsx Save Function
+import { useBlockProps } from '@wordpress/block-editor';
+
+function BlockEdit() {
+    const blockProps = useBlockProps.save();
+    return <div { ...blockProps }>Hello World!</div>;
+}
+```
+
+```php PHP Render Callback
+function render_block() {
+    $wrapper_attributes = get_block_wrapper_attributes();
+    return sprintf(
+        '<div %1$s>%2$s</div>',
+        $wrapper_attributes,
+        'Hello World!'
+    );
+}
+```
+</CodeGroup>
+
+## Color Support
+
+<ParamField path="color" type="object">
+  Enables color-related controls and attributes
+</ParamField>
+
+### Background Color
+
+```json
+{
+    "supports": {
+        "color": {
+            "background": true
+        }
+    }
+}
+```
+
+This automatically adds:
+- `backgroundColor` attribute (string) - Stores preset slug
+- `style.color.background` attribute - Stores custom color value
+- Color picker UI in the editor
+
+### Text Color
+
+```json
+{
+    "supports": {
+        "color": {
+            "text": true
+        }
+    }
+}
+```
+
+Adds:
+- `textColor` attribute - Preset slug
+- `style.color.text` attribute - Custom value
+
+### Gradients
+
+```json
+{
+    "supports": {
+        "color": {
+            "gradients": true,
+            "background": false  // Usually disabled with gradients
+        }
+    }
+}
+```
+
+Adds:
+- `gradient` attribute - Preset gradient slug
+- `style.color.gradient` attribute - Custom gradient
+
+### Link, Heading, and Button Colors
+
+<Note>
+Available since WordPress 6.5
+</Note>
+
+```json
+{
+    "supports": {
+        "color": {
+            "link": true,
+            "heading": true,
+            "button": true
+        }
+    }
+}
+```
+
+### Real Example: Paragraph Block
+
+From `packages/block-library/src/paragraph/block.json`:
+
+```json
+{
+    "supports": {
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        }
+    }
+}
+```
+
+## Spacing Support
+
+<ParamField path="spacing" type="object">
+  Enables margin, padding, and blockGap controls
+</ParamField>
+
+### Margin and Padding
+
+```json
+{
+    "supports": {
+        "spacing": {
+            "margin": true,
+            "padding": true
+        }
+    }
+}
+```
+
+### Specific Sides
+
+Control which sides can be adjusted:
+
+```json
+{
+    "supports": {
+        "spacing": {
+            "margin": [ "top", "bottom" ],
+            "padding": [ "horizontal", "vertical" ]
+        }
+    }
+}
+```
+
+Options:
+- Individual sides: `top`, `right`, `bottom`, `left`
+- Axial pairs: `horizontal`, `vertical`
+
+### Block Gap
+
+```json
+{
+    "supports": {
+        "spacing": {
+            "blockGap": true
+        }
+    }
+}
+```
+
+<Note>
+`blockGap` only works on blocks that also use the `layout` support.
+</Note>
+
+### Real Example: Group Block
+
+From `packages/block-library/src/group/block.json`:
+
+```json
+{
+    "supports": {
+        "spacing": {
+            "margin": [ "top", "bottom" ],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        }
+    }
+}
+```
+
+## Typography Support
+
+<ParamField path="typography" type="object">
+  Enables font-size, line-height, and other text controls
+</ParamField>
+
+### Font Size
+
+```json
+{
+    "supports": {
+        "typography": {
+            "fontSize": true
+        }
+    }
+}
+```
+
+Adds:
+- `fontSize` attribute - Preset size slug
+- `style.typography.fontSize` attribute - Custom value
+
+### Line Height
+
+```json
+{
+    "supports": {
+        "typography": {
+            "lineHeight": true
+        }
+    }
+}
+```
+
+Adds:
+- `style.typography.lineHeight` attribute
+
+### Text Alignment
+
+<Note>
+Available since WordPress 6.6
+</Note>
+
+```json
+{
+    "supports": {
+        "typography": {
+            "textAlign": true  // All options: left, center, right
+        }
+    }
+}
+```
+
+Or limit to specific alignments:
+
+```json
+{
+    "supports": {
+        "typography": {
+            "textAlign": [ "left", "right" ]
+        }
+    }
+}
+```
+
+### Real Example: Button Block
+
+From `packages/block-library/src/button/block.json`:
+
+```json
+{
+    "supports": {
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "textAlign": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        }
+    }
+}
+```
+
+## Border Support
+
+<ParamField path="__experimentalBorder" type="object">
+  Enables border color, radius, style, and width controls
+</ParamField>
+
+```json
+{
+    "supports": {
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            }
+        }
+    }
+}
+```
+
+From `packages/block-library/src/paragraph/block.json`:
+
+```json
+{
+    "supports": {
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true
+        }
+    }
+}
+```
+
+## Dimensions Support
+
+<Note>
+Available since WordPress 6.2
+</Note>
+
+<ParamField path="dimensions" type="object">
+  Controls for width, height, min-height, and aspect-ratio
+</ParamField>
+
+```json
+{
+    "supports": {
+        "dimensions": {
+            "aspectRatio": true,
+            "height": true,
+            "minHeight": true,
+            "width": true
+        }
+    }
+}
+```
+
+Stores values in:
+```js
+attributes: {
+    style: {
+        dimensions: {
+            aspectRatio: "16/9",
+            height: "40vh",
+            minHeight: "50vh",
+            width: "400px"
+        }
+    }
+}
+```
+
+## Alignment Support
+
+<ParamField path="align" type="boolean | array">
+  Enable block alignment controls
+</ParamField>
+
+```json
+{
+    "supports": {
+        "align": true  // All options: left, center, right, wide, full
+    }
+}
+```
+
+Or specific alignments:
+
+```json
+{
+    "supports": {
+        "align": [ "left", "right", "full" ]
+    }
+}
+```
+
+Adds `align` attribute automatically.
+
+From `packages/block-library/src/paragraph/block.json`:
+
+```json
+{
+    "supports": {
+        "align": [ "wide", "full" ]
+    }
+}
+```
+
+## Layout Support
+
+<ParamField path="layout" type="boolean | object">
+  For container blocks with inner blocks
+</ParamField>
+
+```json
+{
+    "supports": {
+        "layout": {
+            "allowSwitching": true,
+            "allowEditing": true,
+            "allowInheriting": true,
+            "default": {
+                "type": "flex",
+                "flexWrap": "nowrap"
+            }
+        }
+    }
+}
+```
+
+### Layout Types
+
+- `flow` - Default vertical stacking
+- `flex` - Flexbox layout
+- `constrained` - Centered content with max-width
+
+### Real Example: Columns Block
+
+From `packages/block-library/src/columns/block.json`:
+
+```json
+{
+    "supports": {
+        "layout": {
+            "allowSwitching": false,
+            "allowInheriting": false,
+            "allowEditing": false,
+            "default": {
+                "type": "flex",
+                "flexWrap": "nowrap"
+            }
+        }
+    }
+}
+```
+
+## Anchor Support
+
+<ParamField path="anchor" type="boolean" default="false">
+  Allows users to define a custom HTML anchor/ID
+</ParamField>
+
+```json
+{
+    "supports": {
+        "anchor": true
+    }
+}
+```
+
+Adds `anchor` attribute and UI field for setting an ID.
+
+## HTML Editing
+
+<ParamField path="html" type="boolean" default="true">
+  Allow editing block markup as HTML
+</ParamField>
+
+```json
+{
+    "supports": {
+        "html": false  // Disable HTML editing
+    }
+}
+```
+
+## Multiple Instances
+
+<ParamField path="multiple" type="boolean" default="true">
+  Allow inserting block more than once
+</ParamField>
+
+```json
+{
+    "supports": {
+        "multiple": false  // Block can only be used once per post
+    }
+}
+```
+
+## Reusable
+
+<ParamField path="reusable" type="boolean" default="true">
+  Allow converting to a reusable block
+</ParamField>
+
+```json
+{
+    "supports": {
+        "reusable": false
+    }
+}
+```
+
+## Inserter Visibility
+
+<ParamField path="inserter" type="boolean" default="true">
+  Show block in the inserter
+</ParamField>
+
+```json
+{
+    "supports": {
+        "inserter": false  // Hide from inserter (programmatic use only)
+    }
+}
+```
+
+## Class Name
+
+<ParamField path="className" type="boolean" default="true">
+  Add automatic `.wp-block-namespace-name` class
+</ParamField>
+
+```json
+{
+    "supports": {
+        "className": false  // Disable automatic class name
+    }
+}
+```
+
+## Custom Class Name
+
+<ParamField path="customClassName" type="boolean" default="true">
+  Allow users to add custom CSS classes
+</ParamField>
+
+```json
+{
+    "supports": {
+        "customClassName": false
+    }
+}
+```
+
+## Lock Support
+
+<ParamField path="lock" type="boolean" default="true">
+  Allow users to lock/unlock the block
+</ParamField>
+
+```json
+{
+    "supports": {
+        "lock": false  // Disable lock UI
+    }
+}
+```
+
+## Renaming
+
+<Note>
+Available since WordPress 6.5
+</Note>
+
+<ParamField path="renaming" type="boolean" default="true">
+  Allow users to rename the block
+</ParamField>
+
+```json
+{
+    "supports": {
+        "renaming": false
+    }
+}
+```
+
+## Position Support
+
+<Note>
+Available since WordPress 6.2
+</Note>
+
+```json
+{
+    "supports": {
+        "position": {
+            "sticky": true
+        }
+    }
+}
+```
+
+Stores values in:
+```js
+style: {
+    position: {
+        type: "sticky",
+        top: "0px"
+    }
+}
+```
+
+## Shadow Support
+
+<Note>
+Available since WordPress 6.5
+</Note>
+
+```json
+{
+    "supports": {
+        "shadow": true
+    }
+}
+```
+
+Stores value in `style.shadow` attribute.
+
+## Background Support
+
+<Note>
+Available since WordPress 6.5
+</Note>
+
+```json
+{
+    "supports": {
+        "background": {
+            "backgroundImage": true,
+            "backgroundSize": true,
+            "__experimentalDefaultControls": {
+                "backgroundImage": true
+            }
+        }
+    }
+}
+```
+
+Stores in:
+```js
+style: {
+    background: {
+        backgroundImage: {
+            url: "IMAGE_URL",
+            id: 123,
+            source: "file",
+            title: "Image Title"
+        },
+        backgroundPosition: "50% 50%",
+        backgroundSize: "cover"
+    }
+}
+```
+
+## Interactivity API
+
+<ParamField path="interactivity" type="boolean | object">
+  Indicates Interactivity API compatibility
+</ParamField>
+
+```json
+{
+    "supports": {
+        "interactivity": {
+            "clientNavigation": true,
+            "interactive": true
+        }
+    }
+}
+```
+
+Or simply:
+```json
+{
+    "supports": {
+        "interactivity": true  // Both clientNavigation and interactive
+    }
+}
+```
+
+## Combining Multiple Supports
+
+Real-world example from the core Paragraph block:
+
+```json
+{
+    "supports": {
+        "align": [ "wide", "full" ],
+        "anchor": true,
+        "className": false,
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true
+        },
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true,
+            "__experimentalDefaultControls": {
+                "margin": false,
+                "padding": false
+            }
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "textAlign": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        },
+        "interactivity": {
+            "clientNavigation": true
+        }
+    }
+}
+```
+
+## Accessing Support Values
+
+Check if a block supports a feature:
+
+```js
+import { hasBlockSupport, getBlockSupport } from '@wordpress/blocks';
+
+// Check if block supports colors
+if ( hasBlockSupport( 'core/paragraph', 'color' ) ) {
+    // Block supports colors
+}
+
+// Get the color support value
+const colorSupport = getBlockSupport( 'core/paragraph', 'color' );
+console.log( colorSupport );
+// { gradients: true, link: true, __experimentalDefaultControls: {...} }
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use supports instead of custom attributes">
+    Leverage block supports for common features rather than implementing custom attributes and controls.
+  </Accordion>
+  
+  <Accordion title="Set default controls">
+    Use `__experimentalDefaultControls` to show important controls by default while hiding advanced options.
+  </Accordion>
+  
+  <Accordion title="Combine related supports">
+    Enable multiple related supports together (e.g., color.background with color.text) for a cohesive experience.
+  </Accordion>
+  
+  <Accordion title="Consider theme compatibility">
+    Some supports require theme opt-in via theme.json. Document any theme requirements for your blocks.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Block Patterns" href="/blocks/block-patterns">
+    Create reusable block layouts
+  </Card>
+  <Card title="Inner Blocks" href="/blocks/inner-blocks">
+    Build container blocks
+  </Card>
+</CardGroup>

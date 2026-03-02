@@ -1,0 +1,432 @@
+---
+title: '@wordpress/hooks'
+description: 'A lightweight and efficient event management system for JavaScript'
+---
+
+# Hooks
+
+The `@wordpress/hooks` package is a lightweight and efficient EventManager for JavaScript, providing a hooks system similar to WordPress PHP hooks. It allows you to add actions and filters to extend and modify behavior in your applications.
+
+## Installation
+
+You can install the package using npm:
+
+```bash
+npm install @wordpress/hooks --save
+```
+
+<Note>
+This package assumes your code will run in an **ES2015+** environment. If you're targeting environments with limited support for modern JavaScript features, include the polyfill from `@wordpress/babel-preset-default`.
+</Note>
+
+## Basic Usage
+
+### Creating a Custom Hooks Instance
+
+You can create your own isolated hooks instance:
+
+```javascript
+import { createHooks } from '@wordpress/hooks';
+
+myObject.hooks = createHooks();
+myObject.hooks.addAction( 'hookName', 'namespace', callback );
+```
+
+### Using the Global Instance
+
+The package provides a default global instance accessible through named exports:
+
+```javascript
+import { addAction, doAction } from '@wordpress/hooks';
+
+addAction( 'hookName', 'namespace', callback );
+doAction( 'hookName' );
+```
+
+<Tip>
+In WordPress, hooks are accessible via `wp.hooks.addAction()`, `wp.hooks.addFilter()`, etc.
+</Tip>
+
+## Key Differences from PHP Hooks
+
+One notable difference from the PHP hooks API is that JavaScript hooks require a **namespace** as the second argument. The namespace uniquely identifies a callback in the form `vendor/plugin/function`.
+
+```js
+// JavaScript requires namespace
+addAction( 'hookName', 'my-plugin/my-function', callback, priority );
+
+// PHP doesn't require namespace
+add_action( 'hook_name', 'callback', priority );
+```
+
+## Actions API
+
+### addAction( hookName, namespace, callback, priority )
+
+Adds an action callback to be executed when the action is triggered.
+
+<ParamField path="hookName" type="string" required>
+  The name of the action hook. Must be a non-empty string containing only numbers, letters, dashes, periods, and underscores. Cannot begin with `__`.
+</ParamField>
+
+<ParamField path="namespace" type="string" required>
+  A unique namespace for the callback in the form `vendor/plugin/function`. Must be a non-empty string containing only numbers, letters, dashes, periods, underscores, and slashes.
+</ParamField>
+
+<ParamField path="callback" type="function" required>
+  The function to be executed when the action is triggered.
+</ParamField>
+
+<ParamField path="priority" type="number" default="10">
+  The priority at which the callback should be executed. Lower numbers execute earlier.
+</ParamField>
+
+```js
+import { addAction } from '@wordpress/hooks';
+
+addAction( 'myPlugin.init', 'my-plugin/init-handler', () => {
+	console.log( 'Plugin initialized!' );
+}, 10 );
+```
+
+### doAction( hookName, ...args )
+
+Executes all callbacks registered for the given action hook synchronously.
+
+<ParamField path="hookName" type="string" required>
+  The name of the action hook to execute.
+</ParamField>
+
+<ParamField path="args" type="...any">
+  Arguments to pass to the callback functions.
+</ParamField>
+
+```js
+import { doAction } from '@wordpress/hooks';
+
+doAction( 'myPlugin.init', arg1, arg2 );
+```
+
+### doActionAsync( hookName, ...args )
+
+Executes all callbacks registered for the given action hook asynchronously.
+
+<ParamField path="hookName" type="string" required>
+  The name of the action hook to execute.
+</ParamField>
+
+<ParamField path="args" type="...any">
+  Arguments to pass to the callback functions.
+</ParamField>
+
+<ResponseField name="return" type="Promise">
+  A Promise that resolves when all callbacks have been executed.
+</ResponseField>
+
+### removeAction( hookName, namespace )
+
+Removes the callback registered for the given action hook and namespace.
+
+<ParamField path="hookName" type="string" required>
+  The name of the action hook.
+</ParamField>
+
+<ParamField path="namespace" type="string" required>
+  The namespace of the callback to remove.
+</ParamField>
+
+```js
+import { removeAction } from '@wordpress/hooks';
+
+removeAction( 'myPlugin.init', 'my-plugin/init-handler' );
+```
+
+### removeAllActions( hookName )
+
+Removes all callbacks registered for the given action hook.
+
+<ParamField path="hookName" type="string" required>
+  The name of the action hook.
+</ParamField>
+
+### hasAction( hookName, namespace )
+
+Checks if any callbacks are registered for the given action hook.
+
+<ParamField path="hookName" type="string" required>
+  The name of the action hook.
+</ParamField>
+
+<ParamField path="namespace" type="string">
+  Optional namespace to check for a specific callback.
+</ParamField>
+
+<ResponseField name="return" type="boolean | number">
+  If namespace is provided, returns the priority of that callback or `false` if not found. Otherwise, returns the number of callbacks registered.
+</ResponseField>
+
+### didAction( hookName )
+
+Returns the number of times an action has been executed.
+
+<ParamField path="hookName" type="string" required>
+  The name of the action hook.
+</ParamField>
+
+<ResponseField name="return" type="number">
+  The number of times the action has been executed.
+</ResponseField>
+
+### doingAction( hookName )
+
+Checks if an action is currently being executed.
+
+<ParamField path="hookName" type="string">
+  Optional name of the action hook. If omitted, checks if any action is currently executing.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether the action is currently being executed.
+</ResponseField>
+
+## Filters API
+
+### addFilter( hookName, namespace, callback, priority )
+
+Adds a filter callback to modify a value when the filter is applied.
+
+<ParamField path="hookName" type="string" required>
+  The name of the filter hook.
+</ParamField>
+
+<ParamField path="namespace" type="string" required>
+  A unique namespace for the callback in the form `vendor/plugin/function`.
+</ParamField>
+
+<ParamField path="callback" type="function" required>
+  The function to be executed. Must return a value.
+</ParamField>
+
+<ParamField path="priority" type="number" default="10">
+  The priority at which the callback should be executed.
+</ParamField>
+
+```js
+import { addFilter } from '@wordpress/hooks';
+
+addFilter( 'myPlugin.content', 'my-plugin/uppercase', ( content ) => {
+	return content.toUpperCase();
+}, 10 );
+```
+
+### applyFilters( hookName, value, ...args )
+
+Applies all callbacks registered for the given filter hook synchronously.
+
+<ParamField path="hookName" type="string" required>
+  The name of the filter hook to apply.
+</ParamField>
+
+<ParamField path="value" type="any" required>
+  The value to filter.
+</ParamField>
+
+<ParamField path="args" type="...any">
+  Additional arguments to pass to the callback functions.
+</ParamField>
+
+<ResponseField name="return" type="any">
+  The filtered value.
+</ResponseField>
+
+```js
+import { applyFilters } from '@wordpress/hooks';
+
+const filtered = applyFilters( 'myPlugin.content', 'hello world' );
+console.log( filtered ); // "HELLO WORLD"
+```
+
+### applyFiltersAsync( hookName, value, ...args )
+
+Applies all callbacks registered for the given filter hook asynchronously.
+
+<ParamField path="hookName" type="string" required>
+  The name of the filter hook to apply.
+</ParamField>
+
+<ParamField path="value" type="any" required>
+  The value to filter.
+</ParamField>
+
+<ParamField path="args" type="...any">
+  Additional arguments to pass to the callback functions.
+</ParamField>
+
+<ResponseField name="return" type="Promise">
+  A Promise that resolves to the filtered value.
+</ResponseField>
+
+### removeFilter( hookName, namespace )
+
+Removes the callback registered for the given filter hook and namespace.
+
+<ParamField path="hookName" type="string" required>
+  The name of the filter hook.
+</ParamField>
+
+<ParamField path="namespace" type="string" required>
+  The namespace of the callback to remove.
+</ParamField>
+
+### removeAllFilters( hookName )
+
+Removes all callbacks registered for the given filter hook.
+
+<ParamField path="hookName" type="string" required>
+  The name of the filter hook.
+</ParamField>
+
+### hasFilter( hookName, namespace )
+
+Checks if any callbacks are registered for the given filter hook.
+
+<ParamField path="hookName" type="string" required>
+  The name of the filter hook.
+</ParamField>
+
+<ParamField path="namespace" type="string">
+  Optional namespace to check for a specific callback.
+</ParamField>
+
+<ResponseField name="return" type="boolean | number">
+  If namespace is provided, returns the priority of that callback or `false` if not found. Otherwise, returns the number of callbacks registered.
+</ResponseField>
+
+### didFilter( hookName )
+
+Returns the number of times a filter has been applied.
+
+<ParamField path="hookName" type="string" required>
+  The name of the filter hook.
+</ParamField>
+
+<ResponseField name="return" type="number">
+  The number of times the filter has been applied.
+</ResponseField>
+
+### doingFilter( hookName )
+
+Checks if a filter is currently being applied.
+
+<ParamField path="hookName" type="string">
+  Optional name of the filter hook. If omitted, checks if any filter is currently being applied.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether the filter is currently being applied.
+</ResponseField>
+
+## Advanced Features
+
+### createHooks()
+
+Creates a new isolated hooks instance.
+
+<ResponseField name="return" type="object">
+  A new Hooks instance with all the hooks methods.
+</ResponseField>
+
+```js
+import { createHooks } from '@wordpress/hooks';
+
+const customHooks = createHooks();
+customHooks.addAction( 'init', 'my-namespace/init', () => {
+	console.log( 'Custom hooks initialized' );
+} );
+```
+
+### Hook Events
+
+Whenever an action or filter is added or removed, a matching event is triggered:
+
+- **hookAdded**: Triggered when `addFilter()` or `addAction()` is called, passing values for `hookName`, `functionName`, `callback`, and `priority`.
+- **hookRemoved**: Triggered when `removeFilter()` or `removeAction()` is called, passing values for `hookName` and `functionName`.
+
+```js
+import { addAction } from '@wordpress/hooks';
+
+// Listen for hooks being added
+addAction( 'hookAdded', 'my-plugin/hook-listener', ( hookName, namespace ) => {
+	console.log( `Hook added: ${hookName} (${namespace})` );
+} );
+```
+
+### The "all" Hook
+
+In non-minified builds, you can register a filter or action that will be called on all hooks:
+
+```js
+import { addAction } from '@wordpress/hooks';
+
+addAction( 'all', 'my-plugin/debug', ( hookName ) => {
+	console.log( `Hook executed: ${hookName}` );
+} );
+```
+
+<Warning>
+The `all` hook is useful for debugging but is stripped from production code for performance reasons.
+</Warning>
+
+## Complete Example
+
+<CodeGroup>
+
+```js Actions Example
+import { addAction, doAction } from '@wordpress/hooks';
+
+// Register an action
+addAction( 'app.loaded', 'my-plugin/on-load', () => {
+	console.log( 'App loaded!' );
+}, 10 );
+
+// Register another action with higher priority
+addAction( 'app.loaded', 'my-plugin/on-load-early', () => {
+	console.log( 'This runs first!' );
+}, 5 );
+
+// Trigger the action
+doAction( 'app.loaded' );
+// Output:
+// "This runs first!"
+// "App loaded!"
+```
+
+```js Filters Example
+import { addFilter, applyFilters } from '@wordpress/hooks';
+
+// Register a filter
+addFilter( 'content.title', 'my-plugin/add-prefix', ( title ) => {
+	return `[New] ${title}`;
+}, 10 );
+
+// Register another filter
+addFilter( 'content.title', 'my-plugin/uppercase', ( title ) => {
+	return title.toUpperCase();
+}, 20 );
+
+// Apply the filters
+const title = applyFilters( 'content.title', 'Hello World' );
+console.log( title );
+// Output: "[NEW] HELLO WORLD"
+```
+
+</CodeGroup>
+
+## Version
+
+Current version: **4.40.0**
+
+## Links
+
+- [GitHub Repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/hooks)
+- [npm Package](https://www.npmjs.com/package/@wordpress/hooks)

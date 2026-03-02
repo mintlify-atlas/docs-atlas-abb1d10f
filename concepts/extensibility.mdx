@@ -1,0 +1,816 @@
+---
+title: Extensibility
+description: How to extend and customize the WordPress Gutenberg Block Editor
+---
+
+## Introduction to extensibility
+
+The WordPress block editor is built with extensibility at its core. You can extend and customize nearly every aspect of the editor through well-defined APIs and hooks.
+
+<Info>
+Extensibility in Gutenberg follows WordPress traditions while embracing modern JavaScript patterns, allowing developers to extend the editor without modifying core code.
+</Info>
+
+## Types of extensibility
+
+The block editor provides several extensibility mechanisms:
+
+<Accordion title="Extensibility mechanisms">
+
+1. **Block registration** - Create custom blocks
+2. **Block variations** - Define variations of existing blocks
+3. **Block transforms** - Transform blocks between types
+4. **Block filters** - Modify block behavior and output
+5. **Block styles** - Add custom style variations
+6. **Editor hooks** - Extend editor functionality
+7. **Slot/Fill system** - Insert UI in predefined locations
+8. **Data stores** - Extend state management
+9. **Format API** - Add rich text formats
+10. **Settings and preferences** - Customize editor configuration
+
+</Accordion>
+
+## Creating custom blocks
+
+The most common extensibility pattern is creating custom blocks.
+
+### Basic block registration
+
+```js
+import { registerBlockType } from '@wordpress/blocks';
+import { useBlockProps } from '@wordpress/block-editor';
+import { __ } from '@wordpress/i18n';
+
+registerBlockType( 'my-plugin/custom-block', {
+  title: __( 'Custom Block', 'my-plugin' ),
+  icon: 'smiley',
+  category: 'widgets',
+  attributes: {
+    content: {
+      type: 'string',
+      source: 'html',
+      selector: 'p',
+    },
+  },
+  edit: ( { attributes, setAttributes } ) => {
+    const blockProps = useBlockProps();
+
+    return (
+      <div { ...blockProps }>
+        <input
+          value={ attributes.content }
+          onChange={ ( e ) => setAttributes( { content: e.target.value } ) }
+        />
+      </div>
+    );
+  },
+  save: ( { attributes } ) => {
+    const blockProps = useBlockProps.save();
+
+    return (
+      <div { ...blockProps }>
+        <p>{ attributes.content }</p>
+      </div>
+    );
+  },
+} );
+```
+
+<Tip>
+Use the `@wordpress/create-block` scaffolding tool to quickly generate block boilerplate:
+
+```bash
+npx @wordpress/create-block my-custom-block
+```
+</Tip>
+
+## Block variations
+
+Block variations allow creating multiple configurations from a single block type:
+
+```js
+import { registerBlockVariation } from '@wordpress/blocks';
+
+registerBlockVariation( 'core/embed', {
+  name: 'my-custom-embed',
+  title: 'My Custom Embed',
+  attributes: {
+    providerNameSlug: 'custom',
+  },
+  isActive: ( blockAttributes, variationAttributes ) =>
+    blockAttributes.providerNameSlug === variationAttributes.providerNameSlug,
+} );
+```
+
+<Note>
+Block variations provide different interfaces while sharing the same underlying block code, reducing duplication.
+</Note>
+
+## Block transforms
+
+Enable blocks to transform between different types:
+
+```js
+import { createBlock } from '@wordpress/blocks';
+
+registerBlockType( 'my-plugin/custom-block', {
+  // ... other settings
+  transforms: {
+    from: [
+      {
+        type: 'block',
+        blocks: [ 'core/paragraph' ],
+        transform: ( attributes ) => {
+          return createBlock( 'my-plugin/custom-block', {
+            content: attributes.content,
+          } );
+        },
+      },
+    ],
+    to: [
+      {
+        type: 'block',
+        blocks: [ 'core/paragraph' ],
+        transform: ( attributes ) => {
+          return createBlock( 'core/paragraph', {
+            content: attributes.content,
+          } );
+        },
+      },
+    ],
+  },
+} );
+```
+
+## Block filters
+
+Modify block behavior using WordPress hooks:
+
+### Adding custom attributes
+
+```js
+import { addFilter } from '@wordpress/hooks';
+import { createHigherOrderComponent } from '@wordpress/compose';
+
+// Add custom attribute
+function addCustomAttribute( settings, name ) {
+  if ( name !== 'core/paragraph' ) {
+    return settings;
+  }
+
+  return {
+    ...settings,
+    attributes: {
+      ...settings.attributes,
+      customAttribute: {
+        type: 'string',
+        default: '',
+      },
+    },
+  };
+}
+
+addFilter(
+  'blocks.registerBlockType',
+  'my-plugin/add-custom-attribute',
+  addCustomAttribute
+);
+```
+
+### Extending the edit component
+
+```js
+import { InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, TextControl } from '@wordpress/components';
+
+const withInspectorControls = createHigherOrderComponent( ( BlockEdit ) => {
+  return ( props ) => {
+    if ( props.name !== 'core/paragraph' ) {
+      return <BlockEdit { ...props } />;
+    }
+
+    return (
+      <>
+        <BlockEdit { ...props } />
+        <InspectorControls>
+          <PanelBody title="Custom Settings">
+            <TextControl
+              label="Custom Attribute"
+              value={ props.attributes.customAttribute }
+              onChange={ ( value ) =>
+                props.setAttributes( { customAttribute: value } )
+              }
+            />
+          </PanelBody>
+        </InspectorControls>
+      </>
+    );
+  };
+}, 'withInspectorControls' );
+
+addFilter(
+  'editor.BlockEdit',
+  'my-plugin/with-inspector-controls',
+  withInspectorControls
+);
+```
+
+### Modifying block output
+
+```js
+import { addFilter } from '@wordpress/hooks';
+
+function addCustomClassName( extraProps, blockType, attributes ) {
+  if ( blockType.name === 'core/paragraph' && attributes.customAttribute ) {
+    extraProps.className = extraProps.className
+      ? `${ extraProps.className } custom-class`
+      : 'custom-class';
+  }
+
+  return extraProps;
+}
+
+addFilter(
+  'blocks.getSaveContent.extraProps',
+  'my-plugin/add-custom-class',
+  addCustomClassName
+);
+```
+
+<Tip>
+Common block filter hooks:
+- `blocks.registerBlockType` - Modify block settings during registration
+- `editor.BlockEdit` - Extend the block edit component
+- `blocks.getSaveContent.extraProps` - Add props to saved block wrapper
+- `blocks.getBlockDefaultClassName` - Customize default block class names
+</Tip>
+
+## Block styles
+
+Register alternative style variations for blocks:
+
+```js
+import { registerBlockStyle } from '@wordpress/blocks';
+
+registerBlockStyle( 'core/quote', {
+  name: 'fancy-quote',
+  label: 'Fancy Quote',
+} );
+```
+
+With corresponding CSS:
+
+```css
+.is-style-fancy-quote {
+  border-left: 4px solid gold;
+  padding-left: 1em;
+  font-style: italic;
+}
+```
+
+### Unregistering block styles
+
+```js
+import { unregisterBlockStyle } from '@wordpress/blocks';
+
+unregisterBlockStyle( 'core/quote', 'plain' );
+```
+
+## Hooks API
+
+The WordPress hooks system (`@wordpress/hooks`) enables event-driven extensibility:
+
+### Adding filters
+
+```js
+import { addFilter } from '@wordpress/hooks';
+
+addFilter(
+  'hookName',
+  'namespace/filter-name',
+  ( value, ...args ) => {
+    // Modify and return value
+    return value;
+  },
+  priority // optional, default 10
+);
+```
+
+### Adding actions
+
+```js
+import { addAction } from '@wordpress/hooks';
+
+addAction(
+  'hookName',
+  'namespace/action-name',
+  ( ...args ) => {
+    // Perform side effects
+  },
+  priority // optional, default 10
+);
+```
+
+<Info>
+The hooks system mirrors PHP WordPress hooks but operates entirely in JavaScript, providing a familiar API for WordPress developers.
+</Info>
+
+## Slot/Fill system
+
+Insert custom UI into predefined editor locations:
+
+### Using fills
+
+```js
+import { Fill } from '@wordpress/components';
+import { PluginDocumentSettingPanel } from '@wordpress/editor';
+
+function MyCustomPanel() {
+  return (
+    <PluginDocumentSettingPanel
+      name="my-custom-panel"
+      title="Custom Settings"
+    >
+      <p>Custom panel content</p>
+    </PluginDocumentSettingPanel>
+  );
+}
+```
+
+### Common plugin areas
+
+<Accordion title="Available plugin slots">
+
+- `PluginDocumentSettingPanel` - Document settings sidebar
+- `PluginSidebar` - Custom sidebar
+- `PluginSidebarMoreMenuItem` - Sidebar menu item
+- `PluginBlockSettingsMenuItem` - Block settings menu
+- `PluginPrePublishPanel` - Pre-publish checklist
+- `PluginPostPublishPanel` - Post-publish panel
+- `PluginPostStatusInfo` - Post status panel
+
+</Accordion>
+
+### Creating custom slots
+
+```js
+import { Slot, Fill, SlotFillProvider } from '@wordpress/components';
+
+function MySlot() {
+  return (
+    <div>
+      <h2>Custom Area</h2>
+      <Slot name="my-custom-slot" />
+    </div>
+  );
+}
+
+function MyFill() {
+  return (
+    <Fill name="my-custom-slot">
+      <p>This content fills the slot</p>
+    </Fill>
+  );
+}
+
+function App() {
+  return (
+    <SlotFillProvider>
+      <MySlot />
+      <MyFill />
+    </SlotFillProvider>
+  );
+}
+```
+
+## Extending data stores
+
+Create custom data stores or extend existing ones:
+
+### Creating a custom store
+
+```js
+import { createReduxStore, register } from '@wordpress/data';
+
+const DEFAULT_STATE = {
+  items: [],
+};
+
+const store = createReduxStore( 'my-plugin/custom-store', {
+  reducer( state = DEFAULT_STATE, action ) {
+    switch ( action.type ) {
+      case 'ADD_ITEM':
+        return {
+          ...state,
+          items: [ ...state.items, action.item ],
+        };
+      default:
+        return state;
+    }
+  },
+  actions: {
+    addItem( item ) {
+      return { type: 'ADD_ITEM', item };
+    },
+  },
+  selectors: {
+    getItems( state ) {
+      return state.items;
+    },
+  },
+} );
+
+register( store );
+```
+
+### Using the custom store
+
+```js
+import { useSelect, useDispatch } from '@wordpress/data';
+
+function MyComponent() {
+  const items = useSelect(
+    ( select ) => select( 'my-plugin/custom-store' ).getItems(),
+    []
+  );
+  const { addItem } = useDispatch( 'my-plugin/custom-store' );
+
+  return (
+    <div>
+      <button onClick={ () => addItem( { name: 'New Item' } ) }>
+        Add Item
+      </button>
+      <ul>
+        { items.map( ( item, index ) => (
+          <li key={ index }>{ item.name }</li>
+        ) ) }
+      </ul>
+    </div>
+  );
+}
+```
+
+## Format API
+
+Add custom rich text formats:
+
+```js
+import { registerFormatType } from '@wordpress/rich-text';
+import { RichTextToolbarButton } from '@wordpress/block-editor';
+import { __ } from '@wordpress/i18n';
+
+registerFormatType( 'my-plugin/custom-format', {
+  title: __( 'Custom Format' ),
+  tagName: 'span',
+  className: 'custom-format',
+  edit: ( { isActive, value, onChange, onFocus } ) => {
+    return (
+      <RichTextToolbarButton
+        icon="star-filled"
+        title={ __( 'Custom Format' ) }
+        onClick={ () => {
+          onChange(
+            toggleFormat( value, {
+              type: 'my-plugin/custom-format',
+            } )
+          );
+          onFocus();
+        } }
+        isActive={ isActive }
+      />
+    );
+  },
+} );
+```
+
+## Block bindings
+
+Connect block attributes to external data sources:
+
+```js
+import { registerBlockBindingsSource } from '@wordpress/blocks';
+
+registerBlockBindingsSource( {
+  name: 'my-plugin/custom-source',
+  label: 'Custom Data Source',
+  usesContext: [ 'postId' ],
+  getValues: ( { bindings, context } ) => {
+    const values = {};
+    for ( const [ attributeName, source ] of Object.entries( bindings ) ) {
+      // Fetch value from custom source
+      values[ attributeName ] = getCustomValue( source.args.key, context.postId );
+    }
+    return values;
+  },
+  setValues: ( { bindings, context } ) => {
+    for ( const [ attributeName, source ] of Object.entries( bindings ) ) {
+      // Save value to custom source
+      saveCustomValue( source.args.key, source.newValue, context.postId );
+    }
+  },
+  canUserEditValue: () => true,
+} );
+```
+
+## Block patterns
+
+Register custom block patterns:
+
+```js
+import { registerBlockPattern } from '@wordpress/blocks';
+
+registerBlockPattern( 'my-plugin/my-pattern', {
+  title: 'Two Columns with Images',
+  description: 'A two-column layout with images',
+  categories: [ 'columns' ],
+  content: `
+    <!-- wp:columns -->
+    <div class="wp-block-columns">
+      <!-- wp:column -->
+      <div class="wp-block-column">
+        <!-- wp:image -->
+        <figure class="wp-block-image"><img alt=""/></figure>
+        <!-- /wp:image -->
+      </div>
+      <!-- /wp:column -->
+      <!-- wp:column -->
+      <div class="wp-block-column">
+        <!-- wp:image -->
+        <figure class="wp-block-image"><img alt=""/></figure>
+        <!-- /wp:image -->
+      </div>
+      <!-- /wp:column -->
+    </div>
+    <!-- /wp:columns -->
+  `,
+} );
+```
+
+### Pattern categories
+
+```js
+import { registerBlockPatternCategory } from '@wordpress/blocks';
+
+registerBlockPatternCategory( 'my-plugin-patterns', {
+  label: 'My Plugin Patterns',
+} );
+```
+
+## Block templates
+
+Define starting content for blocks or post types:
+
+### Block templates for InnerBlocks
+
+```js
+import { InnerBlocks } from '@wordpress/block-editor';
+
+const TEMPLATE = [
+  [ 'core/heading', { placeholder: 'Enter title...' } ],
+  [ 'core/paragraph', { placeholder: 'Enter description...' } ],
+  [ 'core/image', {} ],
+];
+
+function Edit() {
+  return <InnerBlocks template={ TEMPLATE } />;
+}
+```
+
+### Post type templates
+
+```php
+function register_custom_post_type() {
+  register_post_type( 'custom_type', array(
+    'public' => true,
+    'template' => array(
+      array( 'core/heading', array( 'level' => 2 ) ),
+      array( 'core/paragraph', array( 'placeholder' => 'Add content...' ) ),
+      array( 'core/columns', array(), array(
+        array( 'core/column', array(), array(
+          array( 'core/image' ),
+        ) ),
+        array( 'core/column', array(), array(
+          array( 'core/paragraph' ),
+        ) ),
+      ) ),
+    ),
+    'template_lock' => 'all', // or 'insert' to prevent additions
+  ) );
+}
+add_action( 'init', 'register_custom_post_type' );
+```
+
+<Note>
+Template lock options:
+- `'all'` - Prevents all changes
+- `'insert'` - Prevents adding/removing blocks, allows reordering
+- `false` - No restrictions (default)
+</Note>
+
+## Editor settings customization
+
+Modify editor settings and preferences:
+
+```js
+import { registerPlugin } from '@wordpress/plugins';
+import { useEffect } from '@wordpress/element';
+import { useDispatch } from '@wordpress/data';
+import { store as editorStore } from '@wordpress/editor';
+
+function CustomSettings() {
+  const { updateEditorSettings } = useDispatch( editorStore );
+
+  useEffect( () => {
+    updateEditorSettings( {
+      maxWidth: 800,
+      colors: [
+        { name: 'Primary', slug: 'primary', color: '#007cba' },
+        { name: 'Secondary', slug: 'secondary', color: '#23282d' },
+      ],
+      fontSizes: [
+        { name: 'Small', slug: 'small', size: 14 },
+        { name: 'Normal', slug: 'normal', size: 16 },
+        { name: 'Large', slug: 'large', size: 24 },
+      ],
+    } );
+  }, [ updateEditorSettings ] );
+
+  return null;
+}
+
+registerPlugin( 'my-plugin-settings', { render: CustomSettings } );
+```
+
+## Block supports API
+
+Enable built-in block features:
+
+```js
+registerBlockType( 'my-plugin/custom-block', {
+  // ... other settings
+  supports: {
+    // Typography
+    fontSize: true,
+    lineHeight: true,
+
+    // Colors
+    color: {
+      background: true,
+      text: true,
+      link: true,
+    },
+
+    // Spacing
+    spacing: {
+      margin: true,
+      padding: true,
+    },
+
+    // Layout
+    align: true,
+    alignWide: true,
+
+    // Other
+    anchor: true,
+    customClassName: true,
+    html: false,
+  },
+} );
+```
+
+<Tip>
+The Block Supports API automatically adds UI controls and CSS generation for common styling features.
+</Tip>
+
+## Server-side rendering
+
+Register dynamic blocks with PHP rendering:
+
+```php
+function render_custom_block( $attributes, $content ) {
+  $posts = get_posts( array(
+    'posts_per_page' => $attributes['postsToShow'] ?? 5,
+  ) );
+
+  ob_start();
+  ?>
+  <div class="custom-block">
+    <?php foreach ( $posts as $post ) : ?>
+      <h3><?php echo esc_html( $post->post_title ); ?></h3>
+    <?php endforeach; ?>
+  </div>
+  <?php
+  return ob_get_clean();
+}
+
+register_block_type( 'my-plugin/custom-block', array(
+  'render_callback' => 'render_custom_block',
+  'attributes' => array(
+    'postsToShow' => array(
+      'type' => 'number',
+      'default' => 5,
+    ),
+  ),
+) );
+```
+
+## Best practices
+
+<Accordion title="Extensibility best practices">
+
+1. **Use namespaces** - Prefix all custom blocks, hooks, and stores with your plugin slug
+2. **Follow WordPress coding standards** - Use WordPress coding conventions
+3. **Test compatibility** - Verify your extensions work with WordPress versions
+4. **Document your code** - Provide JSDoc comments for public APIs
+5. **Handle errors gracefully** - Add error boundaries and fallbacks
+6. **Use hooks correctly** - Understand filter vs. action semantics
+7. **Optimize performance** - Memoize expensive computations
+8. **Follow accessibility guidelines** - Ensure keyboard and screen reader support
+9. **Version your APIs** - Plan for backward compatibility
+10. **Stay updated** - Follow Gutenberg release notes for API changes
+
+</Accordion>
+
+## Common extensibility patterns
+
+### Extending core blocks
+
+A complete example of extending the paragraph block:
+
+```js
+import { addFilter } from '@wordpress/hooks';
+import { createHigherOrderComponent } from '@wordpress/compose';
+import { InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, ToggleControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
+
+// 1. Add custom attribute
+addFilter(
+  'blocks.registerBlockType',
+  'my-plugin/paragraph-custom-attribute',
+  ( settings, name ) => {
+    if ( name !== 'core/paragraph' ) {
+      return settings;
+    }
+
+    return {
+      ...settings,
+      attributes: {
+        ...settings.attributes,
+        highlight: {
+          type: 'boolean',
+          default: false,
+        },
+      },
+    };
+  }
+);
+
+// 2. Add inspector control
+const withInspectorControl = createHigherOrderComponent( ( BlockEdit ) => {
+  return ( props ) => {
+    if ( props.name !== 'core/paragraph' ) {
+      return <BlockEdit { ...props } />;
+    }
+
+    return (
+      <>
+        <BlockEdit { ...props } />
+        <InspectorControls>
+          <PanelBody title={ __( 'Highlight Settings' ) }>
+            <ToggleControl
+              label={ __( 'Highlight this paragraph' ) }
+              checked={ props.attributes.highlight }
+              onChange={ ( highlight ) => props.setAttributes( { highlight } ) }
+            />
+          </PanelBody>
+        </InspectorControls>
+      </>
+    );
+  };
+}, 'withInspectorControl' );
+
+addFilter( 'editor.BlockEdit', 'my-plugin/with-inspector-control', withInspectorControl );
+
+// 3. Add CSS class to save output
+addFilter(
+  'blocks.getSaveContent.extraProps',
+  'my-plugin/add-highlight-class',
+  ( extraProps, blockType, attributes ) => {
+    if ( blockType.name === 'core/paragraph' && attributes.highlight ) {
+      extraProps.className = extraProps.className
+        ? `${ extraProps.className } is-highlighted`
+        : 'is-highlighted';
+    }
+    return extraProps;
+  }
+);
+```
+
+## Resources and next steps
+
+- Explore the [Blocks](/concepts/blocks) documentation
+- Learn about [Block Editor Architecture](/concepts/block-editor-architecture)
+- Understand the [Data Layer](/concepts/data-layer)
+- Review the [Components](/concepts/components) system
+- Check the [WordPress Block Editor Handbook](https://developer.wordpress.org/block-editor/)

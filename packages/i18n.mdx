@@ -1,0 +1,336 @@
+---
+title: '@wordpress/i18n'
+description: 'WordPress internationalization (i18n) library for client-side localization'
+---
+
+# Internationalization (i18n)
+
+The `@wordpress/i18n` package provides internationalization utilities for client-side localization in WordPress. It allows you to translate text strings in your JavaScript code, similar to how PHP functions work on the server side.
+
+## Installation
+
+You can install the package using npm:
+
+```bash
+npm install @wordpress/i18n --save
+```
+
+<Note>
+This package assumes your code will run in an **ES2015+** environment. If you're targeting environments with limited support for modern JavaScript features, include the polyfill from `@wordpress/babel-preset-default`.
+</Note>
+
+## Basic Usage
+
+```js
+import { sprintf, _n } from '@wordpress/i18n';
+
+sprintf( _n( '%d hat', '%d hats', 4, 'text-domain' ), 4 );
+// Output: "4 hats"
+```
+
+<Tip>
+For comprehensive examples, see the [Internationalization section of the Block Editor Handbook](https://developer.wordpress.org/block-editor/developers/internationalization/).
+</Tip>
+
+## Translation Functions
+
+### __( text, domain )
+
+Retrieves the translation of text.
+
+<ParamField path="text" type="string" required>
+  Text to translate.
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain to retrieve the translated text.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Translated text.
+</ResponseField>
+
+```js
+import { __ } from '@wordpress/i18n';
+
+const greeting = __( 'Hello World', 'my-text-domain' );
+```
+
+### _x( text, context, domain )
+
+Retrieves translated string with gettext context.
+
+<ParamField path="text" type="string" required>
+  Text to translate.
+</ParamField>
+
+<ParamField path="context" type="string" required>
+  Context information for the translators.
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain to retrieve the translated text.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Translated context string without pipe.
+</ResponseField>
+
+```js
+import { _x } from '@wordpress/i18n';
+
+const readVerb = _x( 'Read', 'verb', 'my-text-domain' );
+const readAdjective = _x( 'Read', 'past participle', 'my-text-domain' );
+```
+
+### _n( single, plural, number, domain )
+
+Translates and retrieves the singular or plural form based on the supplied number.
+
+<ParamField path="single" type="string" required>
+  The text to be used if the number is singular.
+</ParamField>
+
+<ParamField path="plural" type="string" required>
+  The text to be used if the number is plural.
+</ParamField>
+
+<ParamField path="number" type="number" required>
+  The number to compare against to use either the singular or plural form.
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain to retrieve the translated text.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The translated singular or plural form.
+</ResponseField>
+
+```js
+import { _n } from '@wordpress/i18n';
+
+const message = _n(
+	'You have one new message',
+	'You have %d new messages',
+	5,
+	'my-text-domain'
+);
+```
+
+### _nx( single, plural, number, context, domain )
+
+Translates and retrieves the singular or plural form based on the supplied number, with gettext context.
+
+<ParamField path="single" type="string" required>
+  The text to be used if the number is singular.
+</ParamField>
+
+<ParamField path="plural" type="string" required>
+  The text to be used if the number is plural.
+</ParamField>
+
+<ParamField path="number" type="number" required>
+  The number to compare against to use either the singular or plural form.
+</ParamField>
+
+<ParamField path="context" type="string" required>
+  Context information for the translators.
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain to retrieve the translated text.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The translated singular or plural form.
+</ResponseField>
+
+## String Formatting
+
+### sprintf( format, ...args )
+
+Returns a formatted string. This function is similar to PHP's `sprintf()`.
+
+<ParamField path="format" type="string" required>
+  The format of the string to generate.
+</ParamField>
+
+<ParamField path="args" type="...any" required>
+  Arguments to apply to the format.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The formatted string.
+</ResponseField>
+
+```js
+import { sprintf, __ } from '@wordpress/i18n';
+
+const message = sprintf(
+	__( 'Hello, %s!', 'my-text-domain' ),
+	'World'
+);
+// Output: "Hello, World!"
+```
+
+## Locale Management
+
+### setLocaleData( data, domain )
+
+Merges locale data into the Tannin instance by domain. Accepts data in a Jed-formatted JSON object shape.
+
+<ParamField path="data" type="object">
+  Locale data configuration.
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain for which configuration applies.
+</ParamField>
+
+```js
+import { setLocaleData } from '@wordpress/i18n';
+
+setLocaleData(
+	{
+		'': {
+			domain: 'my-text-domain',
+			lang: 'es',
+		},
+		'Hello World': [ 'Hola Mundo' ],
+	},
+	'my-text-domain'
+);
+```
+
+### getLocaleData( domain )
+
+Returns locale data by domain in a Jed-formatted JSON object shape.
+
+<ParamField path="domain" type="string">
+  Domain for which to get the data.
+</ParamField>
+
+<ResponseField name="return" type="object">
+  Locale data.
+</ResponseField>
+
+### resetLocaleData( data, domain )
+
+Resets all current Tannin instance locale data and sets the specified locale data for the domain.
+
+<ParamField path="data" type="object">
+  Locale data configuration.
+</ParamField>
+
+<ParamField path="domain" type="string">
+  Domain for which configuration applies.
+</ParamField>
+
+## Utility Functions
+
+### hasTranslation( single, context, domain )
+
+Checks if there is a translation for a given string (in singular form).
+
+<ParamField path="single" type="string" required>
+  Singular form of the string to look up.
+</ParamField>
+
+<ParamField path="context" type="string" required>
+  Context information for the translators.
+</ParamField>
+
+<ParamField path="domain" type="string" required>
+  Domain to retrieve the translated text.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether the translation exists or not.
+</ResponseField>
+
+### isRTL()
+
+Checks if current locale is RTL (Right To Left).
+
+<ResponseField name="return" type="boolean">
+  Whether locale is RTL.
+</ResponseField>
+
+```js
+import { isRTL } from '@wordpress/i18n';
+
+if ( isRTL() ) {
+	console.log( 'Current locale is right-to-left' );
+}
+```
+
+<Note>
+**RTL (Right To Left)** is a locale property indicating that text is written from right to left. For example, Hebrew (`he`) and Arabic (`ar`) are RTL languages. The opposite, **LTR (Left To Right)**, is used in languages like English (`en`), Spanish (`es`), and French (`fr`).
+</Note>
+
+## Advanced Features
+
+### createI18n( initialData, initialDomain, hooks )
+
+Creates an i18n instance for isolated translation contexts.
+
+<ParamField path="initialData" type="object">
+  Locale data configuration.
+</ParamField>
+
+<ParamField path="initialDomain" type="string">
+  Domain for which configuration applies.
+</ParamField>
+
+<ParamField path="hooks" type="object">
+  Hooks implementation.
+</ParamField>
+
+<ResponseField name="return" type="object">
+  I18n instance.
+</ResponseField>
+
+```js
+import { createI18n } from '@wordpress/i18n';
+
+const customI18n = createI18n();
+customI18n.__( 'Hello', 'my-domain' );
+```
+
+### defaultI18n
+
+The default, singleton instance of `I18n` used by all the top-level translation functions.
+
+### subscribe( callback )
+
+Subscribes to changes of locale data.
+
+<ParamField path="callback" type="function" required>
+  Subscription callback function.
+</ParamField>
+
+<ResponseField name="return" type="function">
+  Unsubscribe callback.
+</ResponseField>
+
+```js
+import { subscribe } from '@wordpress/i18n';
+
+const unsubscribe = subscribe( () => {
+	console.log( 'Locale data changed' );
+} );
+
+// Later...
+unsubscribe();
+```
+
+## Version
+
+Current version: **6.13.0**
+
+## Links
+
+- [GitHub Repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/i18n)
+- [npm Package](https://www.npmjs.com/package/@wordpress/i18n)
+- [WordPress PHP i18n Documentation](https://developer.wordpress.org/plugins/internationalization/how-to-internationalize-your-plugin/)

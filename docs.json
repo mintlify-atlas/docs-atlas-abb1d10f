@@ -1,122 +1,143 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Gutenberg Block Editor",
+  "theme": "sequoia",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#2271b1",
+    "light": "#72aee6",
+    "dark": "#135e96"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/WordPress/gutenberg"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/WordPress/gutenberg"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Overview",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "what-is-gutenberg",
+              "key-concepts"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Getting Started",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "getting-started/installation",
+              "getting-started/quickstart",
+              "getting-started/development-environment",
+              "getting-started/create-first-block"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "concepts/blocks",
+              "concepts/block-editor-architecture",
+              "concepts/data-layer",
+              "concepts/components",
+              "concepts/extensibility"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Block Development",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "blocks/block-api",
+              "blocks/block-registration",
+              "blocks/block-attributes",
+              "blocks/block-supports",
+              "blocks/block-patterns",
+              "blocks/inner-blocks"
+            ]
+          },
+          {
+            "group": "Advanced Guides",
+            "pages": [
+              "guides/theme-json",
+              "guides/data-management",
+              "guides/editor-customization",
+              "guides/filters-and-hooks",
+              "guides/internationalization"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Packages",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Core Packages",
             "pages": [
-              "api-reference/introduction"
+              "packages/overview",
+              "packages/blocks",
+              "packages/block-editor",
+              "packages/editor",
+              "packages/data"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "UI Components",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "packages/components",
+              "packages/compose",
+              "packages/element",
+              "packages/icons"
+            ]
+          },
+          {
+            "group": "Editor Implementations",
+            "pages": [
+              "packages/edit-post",
+              "packages/edit-site",
+              "packages/edit-widgets"
+            ]
+          },
+          {
+            "group": "Developer Tools",
+            "pages": [
+              "packages/scripts",
+              "packages/env",
+              "packages/create-block",
+              "packages/e2e-test-utils-playwright"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "packages/api-fetch",
+              "packages/i18n",
+              "packages/hooks",
+              "packages/dom",
+              "packages/url"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Contributing",
+        "groups": [
+          {
+            "group": "Get Involved",
+            "pages": [
+              "contributing/overview",
+              "contributing/code-contributions",
+              "contributing/testing",
+              "contributing/documentation"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

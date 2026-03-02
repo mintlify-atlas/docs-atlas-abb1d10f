@@ -1,0 +1,756 @@
+---
+title: '@wordpress/e2e-test-utils-playwright'
+description: 'End-to-end test utilities for WordPress using Playwright.'
+---
+
+`@wordpress/e2e-test-utils-playwright` provides end-to-end test utilities for WordPress using Playwright. It offers fixtures and helpers for testing WordPress admin, the block editor, and WordPress functionality.
+
+<Warning>
+  This package is under active development. The v0.x version can introduce breaking changes without detailed migration guides. Use a lock file to prevent unexpected breakages.
+</Warning>
+
+## Installation
+
+Install the package as a dev dependency:
+
+```bash
+npm install @wordpress/e2e-test-utils-playwright --save-dev
+```
+
+**Requirements:**
+
+<Note>
+  - Node.js: >= 18.12.0
+  - npm: >= 8.19.2
+  - WordPress: >= 5.6.0 or Gutenberg: >= 9.2.0
+</Note>
+
+## Quick Start
+
+<Steps>
+
+<Step title="Install dependencies">
+  ```bash
+  npm install @wordpress/e2e-test-utils-playwright @playwright/test --save-dev
+  ```
+</Step>
+
+<Step title="Create a test file">
+  ```js tests/example.spec.js
+  const { test, expect } = require('@wordpress/e2e-test-utils-playwright');
+  
+  test.describe('Basic WordPress test', () => {
+    test('should load the homepage', async ({ page }) => {
+      await page.goto('http://localhost:8888');
+      await expect(page).toHaveTitle(/WordPress/);
+    });
+  });
+  ```
+</Step>
+
+<Step title="Run tests">
+  ```bash
+  npx playwright test
+  ```
+</Step>
+
+</Steps>
+
+## Core API
+
+### test
+
+Extended Playwright [test](https://playwright.dev/docs/api/class-test) module with WordPress-specific fixtures.
+
+```js
+const { test } = require('@wordpress/e2e-test-utils-playwright');
+
+test('my test', async ({ admin, editor, page }) => {
+  // Test code here
+});
+```
+
+**Available fixtures:**
+
+- `admin` - Admin utilities for WordPress admin interface
+- `editor` - Block editor utilities
+- `pageUtils` - Generic page interaction utilities
+- `requestUtils` - REST API utilities
+- `page` - Standard Playwright page object
+
+### expect
+
+Playwright/Jest's [expect](https://jestjs.io/docs/expect) function for assertions.
+
+```js
+const { expect } = require('@wordpress/e2e-test-utils-playwright');
+
+await expect(page).toHaveTitle('My Page');
+await expect(page.locator('h1')).toContainText('Welcome');
+```
+
+## Fixtures
+
+### Admin
+
+Utilities for WordPress admin interface.
+
+```js
+test('visit settings page', async ({ admin }) => {
+  await admin.visitAdminPage('options-general.php');
+});
+```
+
+<Accordion title="Admin Methods">
+
+#### visitAdminPage(path)
+
+Navigate to an admin page:
+
+```js
+// Visit general settings
+await admin.visitAdminPage('options-general.php');
+
+// Visit plugins page
+await admin.visitAdminPage('plugins.php');
+
+// Visit post editor
+await admin.visitAdminPage('post-new.php');
+```
+
+#### createNewPost()
+
+Create a new post:
+
+```js
+await admin.createNewPost();
+```
+
+#### createNewPage()
+
+Create a new page:
+
+```js
+await admin.createNewPage();
+```
+
+</Accordion>
+
+### Editor
+
+Utilities for the WordPress block editor.
+
+```js
+test('insert a paragraph block', async ({ admin, editor }) => {
+  await admin.createNewPost();
+  
+  await editor.insertBlock({ name: 'core/paragraph' });
+  await editor.canvas.locator('[data-type="core/paragraph"]').fill('Hello World');
+  
+  await editor.publishPost();
+});
+```
+
+<Accordion title="Editor Methods">
+
+#### insertBlock({ name })
+
+Insert a block:
+
+```js
+// Insert paragraph
+await editor.insertBlock({ name: 'core/paragraph' });
+
+// Insert heading
+await editor.insertBlock({ name: 'core/heading' });
+
+// Insert image
+await editor.insertBlock({ name: 'core/image' });
+```
+
+#### publishPost()
+
+Publish the current post:
+
+```js
+await editor.publishPost();
+```
+
+#### saveDraft()
+
+Save post as draft:
+
+```js
+await editor.saveDraft();
+```
+
+#### canvas
+
+Access the editor canvas (iframe):
+
+```js
+// Select paragraph block in canvas
+await editor.canvas.locator('role=document[name="Paragraph block"i]').click();
+
+// Type in paragraph
+await editor.canvas.locator('[data-type="core/paragraph"]').fill('Content');
+```
+
+</Accordion>
+
+### PageUtils
+
+Generic utilities for page interactions.
+
+```js
+test('keyboard shortcuts', async ({ pageUtils }) => {
+  // Press Ctrl+A (Cmd+A on Mac)
+  await pageUtils.pressKeys('primary+a');
+  
+  // Press Ctrl+Shift+Z
+  await pageUtils.pressKeys('primary+shift+z');
+});
+```
+
+<Accordion title="PageUtils Methods">
+
+#### pressKeys(keys)
+
+Press keyboard shortcuts:
+
+```js
+// Modifier keys are cross-platform
+await pageUtils.pressKeys('primary+a'); // Ctrl+A (Windows/Linux), Cmd+A (Mac)
+await pageUtils.pressKeys('primary+shift+z'); // Ctrl+Shift+Z
+await pageUtils.pressKeys('alt+shift+h'); // Alt+Shift+H
+```
+
+**Available modifiers:**
+- `primary` - Ctrl (Windows/Linux), Cmd (Mac)
+- `shift`
+- `alt`
+- `ctrl`
+
+</Accordion>
+
+### RequestUtils
+
+Utilities for WordPress REST API interactions.
+
+<Steps>
+
+<Step title="Set up RequestUtils">
+  ```js
+  const { RequestUtils } = require('@wordpress/e2e-test-utils-playwright');
+  
+  const requestUtils = await RequestUtils.setup({
+    user: {
+      username: 'admin',
+      password: 'password',
+    },
+    baseURL: 'http://localhost:8888',
+  });
+  ```
+</Step>
+
+<Step title="Use in tests">
+  ```js
+  test('create post via API', async ({ requestUtils }) => {
+    const post = await requestUtils.createPost({
+      title: 'Test Post',
+      content: 'Test content',
+      status: 'publish',
+    });
+    
+    console.log('Created post ID:', post.id);
+  });
+  ```
+</Step>
+
+</Steps>
+
+<Accordion title="RequestUtils Methods">
+
+#### createPost(data)
+
+Create a post via REST API:
+
+```js
+const post = await requestUtils.createPost({
+  title: 'My Post',
+  content: 'Post content',
+  status: 'publish',
+});
+```
+
+#### deleteAllPosts()
+
+Delete all posts:
+
+```js
+await requestUtils.deleteAllPosts();
+```
+
+#### activatePlugin(slug)
+
+Activate a plugin:
+
+```js
+await requestUtils.activatePlugin('my-plugin');
+```
+
+#### deactivatePlugin(slug)
+
+Deactivate a plugin:
+
+```js
+await requestUtils.deactivatePlugin('my-plugin');
+```
+
+</Accordion>
+
+## Common Test Patterns
+
+### Testing Block Insertion
+
+```js
+const { test, expect } = require('@wordpress/e2e-test-utils-playwright');
+
+test.describe('Block insertion', () => {
+  test.beforeEach(async ({ admin }) => {
+    await admin.createNewPost();
+  });
+  
+  test('should insert a paragraph block', async ({ editor }) => {
+    await editor.insertBlock({ name: 'core/paragraph' });
+    
+    const paragraph = editor.canvas.locator('[data-type="core/paragraph"]');
+    await paragraph.fill('Test paragraph');
+    
+    await expect(paragraph).toHaveText('Test paragraph');
+  });
+  
+  test('should insert a heading block', async ({ editor }) => {
+    await editor.insertBlock({ name: 'core/heading' });
+    
+    const heading = editor.canvas.locator('[data-type="core/heading"]');
+    await heading.fill('Test Heading');
+    
+    await expect(heading).toHaveText('Test Heading');
+  });
+});
+```
+
+### Testing Admin Pages
+
+```js
+test('should update site title', async ({ admin, page }) => {
+  await admin.visitAdminPage('options-general.php');
+  
+  const titleInput = page.locator('#blogname');
+  await titleInput.fill('My New Site Title');
+  
+  await page.locator('#submit').click();
+  
+  await expect(page.locator('.updated')).toBeVisible();
+});
+```
+
+### Testing with API Setup
+
+```js
+test.describe('Post editing', () => {
+  let postId;
+  
+  test.beforeAll(async ({ requestUtils }) => {
+    // Create test post via API
+    const post = await requestUtils.createPost({
+      title: 'Test Post',
+      content: 'Initial content',
+      status: 'publish',
+    });
+    postId = post.id;
+  });
+  
+  test.afterAll(async ({ requestUtils }) => {
+    // Clean up
+    await requestUtils.deletePost(postId);
+  });
+  
+  test('should edit existing post', async ({ admin, editor, page }) => {
+    await admin.visitAdminPage(`post.php?post=${postId}&action=edit`);
+    
+    await editor.canvas.locator('[data-type="core/paragraph"]').fill('Updated content');
+    await editor.publishPost();
+    
+    await expect(page.locator('.editor-post-publish-panel__header-published')).toBeVisible();
+  });
+});
+```
+
+### Using Custom Editor Setup
+
+```js
+const { test } = require('@wordpress/e2e-test-utils-playwright');
+
+test.use({
+  editor: async ({ page }, use) => {
+    const { Editor } = require('@wordpress/e2e-test-utils-playwright');
+    await use(new Editor({ page }));
+  },
+});
+
+test('custom editor test', async ({ editor }) => {
+  await editor.canvas.locator('role=document[name="Paragraph block"i]').click();
+});
+```
+
+### Accessing Canvas Elements
+
+The editor uses an iframe, so you must use `editor.canvas` to access elements inside:
+
+```js
+test('interact with canvas', async ({ editor }) => {
+  // ❌ Wrong - won't find elements in iframe
+  await page.locator('[data-type="core/paragraph"]').click();
+  
+  // ✅ Correct - uses canvas property
+  await editor.canvas.locator('[data-type="core/paragraph"]').click();
+});
+```
+
+## Configuration
+
+### Playwright Config
+
+Create a `playwright.config.js` file:
+
+```js playwright.config.js
+const { defineConfig, devices } = require('@playwright/test');
+
+module.exports = defineConfig({
+  testDir: './tests',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  
+  use: {
+    baseURL: 'http://localhost:8888',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+  },
+  
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
+});
+```
+
+### Test Environment Setup
+
+Set up WordPress environment variables:
+
+```js playwright.config.js
+module.exports = defineConfig({
+  use: {
+    baseURL: process.env.WP_BASE_URL || 'http://localhost:8888',
+    storageState: 'storageState.json',
+  },
+});
+```
+
+## Failed Test Artifacts
+
+When tests fail, artifacts are saved to help with debugging.
+
+### Default Location
+
+Artifacts are stored in the `artifacts/` directory by default.
+
+### Custom Location
+
+Set a custom artifacts directory:
+
+```bash
+WP_ARTIFACTS_PATH=my/custom/artifacts npm run test:e2e
+```
+
+### Artifact Types
+
+- **Screenshots** - captured when tests fail
+- **Videos** - recorded test execution
+- **Traces** - detailed execution traces
+
+### Viewing Artifacts
+
+```bash
+# Open Playwright trace viewer
+npx playwright show-trace artifacts/traces/test-name.zip
+
+# Open HTML report with artifacts
+npx playwright show-report
+```
+
+## Advanced Usage
+
+### Custom Fixtures
+
+Extend the test fixtures:
+
+```js
+const { test: base } = require('@wordpress/e2e-test-utils-playwright');
+
+const test = base.extend({
+  myFixture: async ({ page }, use) => {
+    // Setup
+    const myHelper = {
+      doSomething: async () => {
+        // Custom logic
+      },
+    };
+    
+    await use(myHelper);
+    
+    // Teardown
+  },
+});
+
+test('use custom fixture', async ({ myFixture }) => {
+  await myFixture.doSomething();
+});
+```
+
+### Multiple WordPress Instances
+
+Test against different WordPress versions:
+
+```js playwright.config.js
+module.exports = defineConfig({
+  projects: [
+    {
+      name: 'wp-6.4',
+      use: {
+        baseURL: 'http://localhost:8888',
+      },
+    },
+    {
+      name: 'wp-6.5',
+      use: {
+        baseURL: 'http://localhost:8889',
+      },
+    },
+  ],
+});
+```
+
+### Performance Testing
+
+Measure page performance:
+
+```js
+test('measure page load time', async ({ page }) => {
+  const startTime = Date.now();
+  await page.goto('http://localhost:8888');
+  const loadTime = Date.now() - startTime;
+  
+  expect(loadTime).toBeLessThan(3000);
+});
+```
+
+## Running Tests
+
+### Basic Commands
+
+<CodeGroup>
+
+```bash Terminal (Run all tests)
+npx playwright test
+```
+
+```bash Terminal (Run specific test file)
+npx playwright test tests/example.spec.js
+```
+
+```bash Terminal (Run in headed mode)
+npx playwright test --headed
+```
+
+```bash Terminal (Run in debug mode)
+npx playwright test --debug
+```
+
+```bash Terminal (Run in UI mode)
+npx playwright test --ui
+```
+
+</CodeGroup>
+
+### With wp-scripts
+
+If using `@wordpress/scripts`:
+
+```json package.json
+{
+  "scripts": {
+    "test:e2e": "wp-scripts test-playwright",
+    "test:e2e:debug": "wp-scripts test-playwright --debug"
+  }
+}
+```
+
+```bash Terminal
+npm run test:e2e
+npm run test:e2e:debug
+```
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Use beforeEach for common setup">
+  ```js
+  test.describe('Block tests', () => {
+    test.beforeEach(async ({ admin }) => {
+      await admin.createNewPost();
+    });
+    
+    test('test 1', async ({ editor }) => {
+      // Post already created
+    });
+    
+    test('test 2', async ({ editor }) => {
+      // Post already created
+    });
+  });
+  ```
+</Accordion>
+
+<Accordion title="Clean up with afterEach/afterAll">
+  ```js
+  test.afterEach(async ({ requestUtils }) => {
+    await requestUtils.deleteAllPosts();
+  });
+  ```
+</Accordion>
+
+<Accordion title="Use data-testid for reliable selectors">
+  ```js
+  // ❌ Fragile selector
+  await page.locator('.my-class > div:nth-child(2)').click();
+  
+  // ✅ Stable selector
+  await page.locator('[data-testid="my-button"]').click();
+  ```
+</Accordion>
+
+<Accordion title="Wait for elements properly">
+  ```js
+  // Wait for element to be visible
+  await expect(page.locator('.success-message')).toBeVisible();
+  
+  // Wait for element to contain text
+  await expect(page.locator('h1')).toContainText('Success');
+  ```
+</Accordion>
+
+<Accordion title="Use API for setup when possible">
+  ```js
+  // ❌ Slow - uses UI
+  test.beforeEach(async ({ admin, editor }) => {
+    await admin.createNewPost();
+    await editor.insertBlock({ name: 'core/paragraph' });
+  });
+  
+  // ✅ Fast - uses API
+  test.beforeEach(async ({ requestUtils }) => {
+    await requestUtils.createPost({
+      title: 'Test',
+      content: '<!-- wp:paragraph --><p>Test</p><!-- /wp:paragraph -->',
+    });
+  });
+  ```
+</Accordion>
+
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Elements not found in editor">
+  **Issue:** Can't find blocks or editor elements
+  
+  **Solution:** Use `editor.canvas` to access iframe content:
+  ```js
+  // ✅ Correct
+  await editor.canvas.locator('[data-type="core/paragraph"]').click();
+  ```
+</Accordion>
+
+<Accordion title="Flaky tests">
+  **Issue:** Tests pass/fail intermittently
+  
+  **Solutions:**
+  1. Use `toBeVisible()` instead of checking existence
+  2. Increase timeout for slow operations
+  3. Wait for network idle before assertions
+  
+  ```js
+  await page.waitForLoadState('networkidle');
+  ```
+</Accordion>
+
+<Accordion title="Authentication issues">
+  **Issue:** Can't access admin pages
+  
+  **Solution:** Verify credentials in RequestUtils setup:
+  ```js
+  const requestUtils = await RequestUtils.setup({
+    user: {
+      username: 'admin',
+      password: 'password',
+    },
+  });
+  ```
+</Accordion>
+
+<Accordion title="Timeout errors">
+  **Issue:** Tests timeout waiting for elements
+  
+  **Solution:** Increase timeout in config:
+  ```js playwright.config.js
+  module.exports = defineConfig({
+    timeout: 60000, // 60 seconds
+    expect: {
+      timeout: 10000, // 10 seconds for assertions
+    },
+  });
+  ```
+</Accordion>
+
+</AccordionGroup>
+
+## Examples Repository
+
+Find more examples in the [Gutenberg repository](https://github.com/WordPress/gutenberg/tree/trunk/test/e2e/specs).
+
+## Package Information
+
+- **Version:** 1.40.0
+- **Node.js:** >= 18.12.0
+- **npm:** >= 8.19.2
+- **License:** GPL-2.0-or-later
+- **Peer Dependencies:**
+  - `@playwright/test` >= 1
+  - `@types/node` ^20.17.10
+
+## Related Packages
+
+- [@wordpress/scripts](/packages/scripts) - Build and test scripts
+- [@wordpress/env](/packages/env) - Local WordPress environment
+- [@playwright/test](https://playwright.dev/) - Playwright testing framework

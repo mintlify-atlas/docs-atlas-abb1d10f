@@ -1,0 +1,583 @@
+---
+title: Component System
+description: Overview of the WordPress components system for building block editor UIs
+---
+
+## Introduction to components
+
+The `@wordpress/components` package provides a library of generic WordPress components for creating common UI elements shared between screens and features of the WordPress dashboard.
+
+<Info>
+These components are designed to be reusable, accessible, and consistent with WordPress design patterns.
+</Info>
+
+## Installation
+
+Install the components package:
+
+```bash
+npm install @wordpress/components --save
+```
+
+This package requires an ES2015+ environment. Use the polyfill from `@wordpress/babel-preset-default` if needed.
+
+## Basic usage
+
+Import components from the package root:
+
+```jsx
+import { Button } from '@wordpress/components';
+
+export default function MyButton() {
+  return <Button>Click Me!</Button>;
+}
+```
+
+## Loading component styles
+
+Many components include CSS styles that must be loaded for proper appearance.
+
+### In WordPress
+
+Add the `wp-components` stylesheet as a dependency:
+
+```php
+wp_enqueue_style(
+  'my-plugin-style',
+  'path/to/my-style.css',
+  array( 'wp-components' )
+);
+```
+
+### In non-WordPress projects
+
+Link directly to the built stylesheet:
+
+```js
+import '@wordpress/components/build-style/style.css';
+```
+
+The file is located at `node_modules/@wordpress/components/build-style/style.css`.
+
+## Component categories
+
+The components package includes various UI elements:
+
+<Accordion title="Common component types">
+
+### Input Components
+- `Button` - Buttons with various styles and sizes
+- `TextControl` - Text input fields
+- `TextareaControl` - Multiline text areas
+- `CheckboxControl` - Checkbox inputs
+- `RadioControl` - Radio button groups
+- `SelectControl` - Dropdown selects
+- `ToggleControl` - Toggle switches
+
+### Layout Components
+- `Panel` - Collapsible panel containers
+- `PanelBody` - Panel sections
+- `PanelRow` - Panel rows
+- `Card` - Card containers
+- `CardBody` - Card content areas
+
+### Feedback Components
+- `Notice` - User notifications
+- `Snackbar` - Temporary notifications
+- `Spinner` - Loading indicators
+- `Placeholder` - Content placeholders
+
+### Advanced Components
+- `Popover` - Floating popovers
+- `Modal` - Modal dialogs
+- `Dropdown` - Dropdown menus
+- `ColorPicker` - Color selection
+- `DatePicker` - Date selection
+
+</Accordion>
+
+## Block editor components
+
+The `@wordpress/block-editor` package provides specialized components for the block editor.
+
+<Note>
+Components in `@wordpress/block-editor` are customized for editor use. Use `@wordpress/components` for general-purpose UI unless building an editor.
+</Note>
+
+### Key block editor components
+
+```jsx
+import {
+  BlockEditorProvider,
+  BlockList,
+  BlockCanvas,
+  BlockInspector,
+  BlockControls,
+  InspectorControls,
+  InnerBlocks,
+  RichText,
+  MediaPlaceholder,
+  URLInput,
+} from '@wordpress/block-editor';
+```
+
+## Component examples
+
+### Button component
+
+```jsx
+import { Button } from '@wordpress/components';
+import { useState } from '@wordpress/element';
+
+function Example() {
+  const [ isLoading, setIsLoading ] = useState( false );
+
+  return (
+    <div>
+      <Button variant="primary" onClick={ () => setIsLoading( true ) }>
+        Primary Button
+      </Button>
+      <Button variant="secondary">
+        Secondary Button
+      </Button>
+      <Button variant="tertiary" isBusy={ isLoading }>
+        { isLoading ? 'Loading...' : 'Tertiary Button' }
+      </Button>
+    </div>
+  );
+}
+```
+
+### Panel components
+
+```jsx
+import { Panel, PanelBody, PanelRow, TextControl } from '@wordpress/components';
+
+function SettingsPanel() {
+  return (
+    <Panel>
+      <PanelBody title="General Settings" initialOpen={ true }>
+        <PanelRow>
+          <TextControl
+            label="Site Title"
+            value={ siteTitle }
+            onChange={ setSiteTitle }
+          />
+        </PanelRow>
+        <PanelRow>
+          <TextControl
+            label="Tagline"
+            value={ tagline }
+            onChange={ setTagline }
+          />
+        </PanelRow>
+      </PanelBody>
+      <PanelBody title="Advanced Settings" initialOpen={ false }>
+        <PanelRow>
+          {/* Advanced settings */}
+        </PanelRow>
+      </PanelBody>
+    </Panel>
+  );
+}
+```
+
+### Modal component
+
+```jsx
+import { Button, Modal } from '@wordpress/components';
+import { useState } from '@wordpress/element';
+
+function ModalExample() {
+  const [ isOpen, setIsOpen ] = useState( false );
+
+  return (
+    <>
+      <Button onClick={ () => setIsOpen( true ) }>
+        Open Modal
+      </Button>
+      { isOpen && (
+        <Modal
+          title="My Modal"
+          onRequestClose={ () => setIsOpen( false ) }
+        >
+          <p>Modal content goes here.</p>
+          <Button variant="primary" onClick={ () => setIsOpen( false ) }>
+            Close
+          </Button>
+        </Modal>
+      ) }
+    </>
+  );
+}
+```
+
+### ColorPicker component
+
+```jsx
+import { ColorPicker } from '@wordpress/components';
+import { useState } from '@wordpress/element';
+
+function ColorExample() {
+  const [ color, setColor ] = useState( '#f00' );
+
+  return (
+    <div>
+      <ColorPicker
+        color={ color }
+        onChangeComplete={ ( value ) => setColor( value.hex ) }
+      />
+      <p>Selected color: { color }</p>
+    </div>
+  );
+}
+```
+
+## Popover system
+
+By default, `Popover` components render in an element appended to the document body.
+
+### Controlling popover placement
+
+Use `Popover.Slot` to control where popovers render:
+
+```jsx
+import { Popover, SlotFillProvider } from '@wordpress/components';
+import { MyComponentWithPopover } from './my-component';
+
+const App = () => (
+  <SlotFillProvider>
+    <MyComponentWithPopover />
+    <Popover.Slot />
+  </SlotFillProvider>
+);
+```
+
+<Tip>
+Wrap your app with `SlotFillProvider` and add `Popover.Slot` where you want popovers to render.
+</Tip>
+
+## TypeScript usage
+
+The package exports TypeScript types for components. Extract props types using `React.ComponentProps`:
+
+```tsx
+import type { ComponentProps } from 'react';
+import { Button } from '@wordpress/components';
+
+export default function MyButton( props: ComponentProps< typeof Button > ) {
+  return <Button { ...props }>Click Me!</Button>;
+}
+```
+
+## Block editor specific components
+
+The `@wordpress/block-editor` package provides components designed specifically for block development:
+
+### RichText component
+
+For editable rich text content:
+
+```jsx
+import { RichText, useBlockProps } from '@wordpress/block-editor';
+
+function Edit( { attributes, setAttributes } ) {
+  const blockProps = useBlockProps();
+
+  return (
+    <RichText
+      { ...blockProps }
+      tagName="p"
+      value={ attributes.content }
+      onChange={ ( content ) => setAttributes( { content } ) }
+      placeholder="Enter text..."
+    />
+  );
+}
+```
+
+### InspectorControls
+
+For block sidebar settings:
+
+```jsx
+import { InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, RangeControl } from '@wordpress/components';
+
+function Edit( { attributes, setAttributes } ) {
+  return (
+    <>
+      <InspectorControls>
+        <PanelBody title="Settings">
+          <RangeControl
+            label="Columns"
+            value={ attributes.columns }
+            onChange={ ( columns ) => setAttributes( { columns } ) }
+            min={ 1 }
+            max={ 6 }
+          />
+        </PanelBody>
+      </InspectorControls>
+      {/* Block content */}
+    </>
+  );
+}
+```
+
+### BlockControls
+
+For block toolbar controls:
+
+```jsx
+import { BlockControls, AlignmentToolbar } from '@wordpress/block-editor';
+
+function Edit( { attributes, setAttributes } ) {
+  return (
+    <>
+      <BlockControls>
+        <AlignmentToolbar
+          value={ attributes.align }
+          onChange={ ( align ) => setAttributes( { align } ) }
+        />
+      </BlockControls>
+      {/* Block content */}
+    </>
+  );
+}
+```
+
+### InnerBlocks
+
+For nested block structures:
+
+```jsx
+import { InnerBlocks, useBlockProps } from '@wordpress/block-editor';
+
+function Edit() {
+  const blockProps = useBlockProps();
+
+  return (
+    <div { ...blockProps }>
+      <InnerBlocks
+        allowedBlocks={ [ 'core/paragraph', 'core/image' ] }
+        template={ [
+          [ 'core/paragraph', { placeholder: 'Add content...' } ],
+        ] }
+      />
+    </div>
+  );
+}
+
+function Save() {
+  const blockProps = useBlockProps.save();
+
+  return (
+    <div { ...blockProps }>
+      <InnerBlocks.Content />
+    </div>
+  );
+}
+```
+
+<Info>
+The `InnerBlocks` API governs child block usage and enables hierarchical block structures.
+</Info>
+
+## Block hooks
+
+The `@wordpress/block-editor` package provides essential hooks:
+
+### useBlockProps
+
+Marks an element as a block wrapper:
+
+```jsx
+import { useBlockProps } from '@wordpress/block-editor';
+
+function Edit() {
+  const blockProps = useBlockProps( {
+    className: 'my-custom-class',
+    style: {
+      color: '#222',
+      backgroundColor: '#eee',
+    },
+  } );
+
+  return <div { ...blockProps }>Block content</div>;
+}
+```
+
+<Note>
+Use of `useBlockProps` on the outermost element is required for blocks using API version 2 or higher.
+</Note>
+
+### useInnerBlocksProps
+
+Marks an element as an inner blocks wrapper:
+
+```jsx
+import { useBlockProps, useInnerBlocksProps } from '@wordpress/block-editor';
+
+function Edit() {
+  const blockProps = useBlockProps();
+  const innerBlocksProps = useInnerBlocksProps( blockProps, {
+    allowedBlocks: [ 'core/paragraph' ],
+  } );
+
+  return <div { ...innerBlocksProps } />;
+}
+```
+
+### useBlockEditContext
+
+Access block edit context:
+
+```jsx
+import { useBlockEditContext } from '@wordpress/block-editor';
+
+function MyComponent() {
+  const { name, isSelected, clientId } = useBlockEditContext();
+
+  return (
+    <div>
+      Block: { name }
+      Selected: { isSelected ? 'Yes' : 'No' }
+      ID: { clientId }
+    </div>
+  );
+}
+```
+
+## Component documentation
+
+Comprehensive component documentation and interactive examples are available in Storybook:
+
+<Tip>
+Browse component docs and examples at [https://wordpress.github.io/gutenberg/](https://wordpress.github.io/gutenberg/)
+</Tip>
+
+## Accessibility
+
+WordPress components follow accessibility best practices:
+
+- Keyboard navigation support
+- ARIA attributes for screen readers
+- Focus management
+- Color contrast compliance
+- Semantic HTML structure
+
+<Note>
+Always test your components with keyboard navigation and screen readers to ensure accessibility.
+</Note>
+
+## Using components in WordPress
+
+When building WordPress plugins, enqueue component dependencies:
+
+```php
+function my_plugin_enqueue_scripts() {
+  wp_enqueue_script(
+    'my-plugin-script',
+    plugins_url( 'build/index.js', __FILE__ ),
+    array( 'wp-components', 'wp-element', 'wp-i18n' ),
+    '1.0.0',
+    true
+  );
+
+  wp_enqueue_style(
+    'my-plugin-style',
+    plugins_url( 'build/style.css', __FILE__ ),
+    array( 'wp-components' ),
+    '1.0.0'
+  );
+}
+add_action( 'admin_enqueue_scripts', 'my_plugin_enqueue_scripts' );
+```
+
+Access components via the `wp` global:
+
+```js
+const { Button } = wp.components;
+const { render } = wp.element;
+
+function MyApp() {
+  return <Button>Click Me!</Button>;
+}
+
+render( <MyApp />, document.getElementById( 'my-app' ) );
+```
+
+## Component status and transitions
+
+The components package is evolving:
+
+<Info>
+WordPress is rewriting global components for the new `@wordpress/ui` package. However, this is work in progress—continue using `@wordpress/components` until further notice.
+</Info>
+
+Check component status in Storybook documentation for up-to-date usage guidance. The Storybook status is the most accurate signal, above `experimental` tags or prefixes.
+
+## Form components and validation
+
+### DataForm integration
+
+For editing dataset items, consider using `DataForm` from `@wordpress/dataviews`:
+
+```jsx
+import { DataForm } from '@wordpress/dataviews';
+
+function EditForm( { data, onChange } ) {
+  return (
+    <DataForm
+      data={ data }
+      fields={ fields }
+      onChange={ onChange }
+    />
+  );
+}
+```
+
+### Validated form components
+
+For validation, use validated form components:
+
+```jsx
+import { ValidatedTextControl } from '@wordpress/components/validated-form-controls';
+
+function MyForm() {
+  return (
+    <ValidatedTextControl
+      label="Email"
+      value={ email }
+      onChange={ setEmail }
+      validation={ ( value ) => {
+        if ( ! value.includes( '@' ) ) {
+          return 'Please enter a valid email';
+        }
+      } }
+    />
+  );
+}
+```
+
+## Best practices
+
+<Accordion title="Component best practices">
+
+1. **Use semantic components** - Choose components that match your intent
+2. **Load required styles** - Always enqueue component stylesheets
+3. **Follow accessibility patterns** - Use ARIA labels and keyboard navigation
+4. **Check component status** - Verify component stability in Storybook
+5. **Use TypeScript types** - Leverage TypeScript for type safety
+6. **Test interactivity** - Verify keyboard and screen reader support
+7. **Manage dependencies** - Properly declare script dependencies
+8. **Use SlotFill for popovers** - Control popover rendering locations
+
+</Accordion>
+
+## Next steps
+
+- Explore the [Data Layer](/concepts/data-layer) for state management
+- Learn about [Extensibility](/concepts/extensibility) patterns
+- Understand [Block Editor Architecture](/concepts/block-editor-architecture)
+- Deep dive into [Blocks](/concepts/blocks)

@@ -1,0 +1,536 @@
+---
+title: Testing Guide
+description: Learn how to write and run JavaScript, PHP, and end-to-end tests for WordPress Gutenberg
+---
+
+Gutenberg contains both PHP and JavaScript code, and encourages testing for both. This guide covers the testing frameworks, commands, and best practices for contributing tests to the project.
+
+## Why Test?
+
+Tests are important because they:
+
+- Help ensure the application behaves as it should
+- Provide concise examples of how to use a piece of code
+- Prevent regressions and unintended bugs
+- Document expected behavior
+
+<Tip>
+When writing tests, consider: What behavior(s) are we testing? What errors are likely to occur? Does the test actually test what we think it does? Is it readable for other contributors?
+</Tip>
+
+## JavaScript Testing
+
+Gutenberg uses [Jest](https://jestjs.io/) as the test runner for JavaScript tests, along with [React Testing Library](https://testing-library.com/docs/react-testing-library/intro) for React component testing.
+
+### Running JavaScript Tests
+
+```bash
+# Run all JavaScript tests with linting
+npm test
+
+# Run only unit tests (without linting)
+npm run test:unit
+
+# Run tests in watch mode
+npm run test:unit:watch
+
+# Run specific test file
+npm run test:unit path/to/test/file.js
+
+# Run tests matching a pattern
+npm run test:unit -- --testNamePattern="<TestName>"
+
+# Run tests in a specific directory
+npm run test:unit path/to/test/directory
+
+# Update snapshots
+npm run test:unit -- --updateSnapshot
+```
+
+### JavaScript Linting
+
+```bash
+# Check JavaScript linting
+npm run lint:js
+
+# Fix JavaScript linting issues automatically
+npm run lint:js:fix
+
+# Format code with Prettier
+npm run format
+```
+
+<Note>
+Linting uses [ESLint](https://eslint.org/) for static code analysis and [TypeScript's type-checking](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html) to catch potential errors.
+</Note>
+
+### Test Folder Structure
+
+Keep your tests in a `test` folder within your working directory:
+
+```
++-- test
+|   +-- bar.js
++-- bar.js
+```
+
+For mocks and fixtures, use subdirectories:
+
+- `test/mocks/[file-name].js`
+- `test/fixtures/[file-name].js`
+
+### Writing Good Tests
+
+#### Describing Tests
+
+<CodeGroup>
+```javascript Good Example
+describe( 'CheckboxWithLabel', () => {
+    test( 'checking checkbox should disable the form submit button', () => {
+        // Test implementation
+    } );
+} );
+```
+
+```javascript Bad Example
+describe( 'CheckboxWithLabel', () => {
+    test( 'checking checkbox should set this.state.disableButton to `true`', () => {
+        // Test implementation
+    } );
+} );
+```
+</CodeGroup>
+
+<Tip>
+Describe expected behavior from a user perspective rather than explaining code internals.
+</Tip>
+
+#### User Interactions
+
+Use the `@testing-library/user-event` library to simulate user interactions:
+
+```javascript
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+test( 'fires onChange when a new value is typed', async () => {
+    const user = userEvent.setup();
+    const spyOnChange = jest.fn();
+
+    render( <MyComponent onChange={ spyOnChange } /> );
+
+    const input = screen.getByRole( 'textbox' );
+    await user.clear( input );
+    await user.type( input, '62' );
+
+    expect( spyOnChange ).toHaveBeenCalled();
+} );
+```
+
+<Warning>
+Prefer `user-event` over `fireEvent` because it dispatches events as they would happen in real browser interactions.
+</Warning>
+
+### Snapshot Testing
+
+Snapshots capture component rendering and data structures:
+
+```javascript
+import { render, screen } from '@testing-library/react';
+
+test( 'should contain mars if planets is true', () => {
+    const { container } = render( <SolarSystem planets /> );
+
+    // Snapshot will catch unintended changes
+    expect( container ).toMatchSnapshot();
+
+    // This is what we actually expect to find
+    expect( screen.getByText( /mars/i ) ).toBeInTheDocument();
+} );
+```
+
+**Update Snapshots:**
+
+```bash
+npm run test:unit -- --updateSnapshot --testPathPattern path/to/tests
+```
+
+<Tip>
+In watch mode, press `u` to update snapshots when tests fail.
+</Tip>
+
+### Integration Testing for Blocks
+
+Integration tests allow testing block editor functionality without a full E2E setup:
+
+```javascript
+import { initializeEditor } from 'test/integration/helpers/integration-test-editor';
+
+async function setup( attributes ) {
+    const testBlock = { name: 'core/cover', attributes };
+    return initializeEditor( testBlock );
+}
+
+test( 'block renders correctly', async () => {
+    const { getByLabelText } = await setup( { url: 'image.jpg' } );
+    
+    const block = getByLabelText( 'Block: Cover' );
+    expect( block ).toBeInTheDocument();
+} );
+```
+
+<Note>
+Integration tests run much faster than E2E tests and cover most block UI functionality. Use E2E tests only for interactions requiring a full browser environment (file uploads, drag and drop, etc.).
+</Note>
+
+### Debugging JavaScript Tests
+
+Run tests in debug mode to attach a debugger:
+
+```bash
+npm run test:unit:debug
+```
+
+Then open `chrome://inspect` in Chrome and click "inspect" under the Remote Target section.
+
+## PHP Testing
+
+PHP tests use [PHPUnit](https://phpunit.de/) as the testing framework.
+
+### Running PHP Tests
+
+<Note>
+PHP tests require `wp-env` to be running.
+</Note>
+
+```bash
+# Run all PHP tests with linting
+npm run test:php
+
+# Run PHP tests in watch mode
+npm run test:php:watch
+
+# Run all PHP tests (using composer)
+composer test
+
+# Run only unit tests (without linting)
+npm run test:unit:php
+
+# Run specific test file
+vendor/bin/phpunit path/to/test/file.php
+
+# Run tests in a directory
+vendor/bin/phpunit path/to/test/directory/
+```
+
+### PHP Code Standards
+
+```bash
+# Check PHP coding standards
+npm run lint:php
+# Or: vendor/bin/phpcs
+
+# Fix PHP coding standards automatically
+vendor/bin/phpcbf
+
+# Fix specific file
+vendor/bin/phpcbf path/to/file.php
+```
+
+<Note>
+Gutenberg uses [PHP_CodeSniffer](https://github.com/squizlabs/PHP_CodeSniffer) and the [WordPress Coding Standards](https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards) ruleset.
+</Note>
+
+### Testing Prefixed Functions
+
+<Warning>
+Gutenberg's build system automatically prefixes PHP functions with `gutenberg_`. You must test the **built (prefixed) versions** of functions, not the source versions.
+</Warning>
+
+```php
+// phpunit/blocks/my-block-test.php
+class My_Block_Test extends WP_UnitTestCase {
+    public function test_my_function() {
+        // Test the built function (with gutenberg_ prefix)
+        $result = gutenberg_block_core_my_block_render_function( $args );
+        $this->assertEquals( $expected, $result );
+    }
+
+    public function test_my_class() {
+        // Test the built class (with _Gutenberg suffix)
+        $handler = new WP_Example_Block_Handler_Gutenberg();
+        $result = $handler->process( $input );
+        $this->assertEquals( $expected, $result );
+    }
+}
+```
+
+## End-to-End Testing
+
+Gutenberg is migrating from Puppeteer to [Playwright](https://playwright.dev/) for E2E tests.
+
+<Note>
+It's recommended to write new E2E tests in Playwright whenever possible.
+</Note>
+
+### Running E2E Tests
+
+<Note>
+E2E tests require `wp-env` to be running.
+</Note>
+
+```bash
+# Run all E2E tests
+npm run test:e2e
+
+# Run in watch mode
+npm run test:e2e:watch
+
+# Run with browser visible
+npm run test:e2e -- --headed
+
+# Run specific test file
+npm run test:e2e -- path/to/test.spec.js
+
+# Debug mode
+npm run test:e2e:debug
+```
+
+### E2E Testing with Puppeteer (Legacy)
+
+```bash
+# Interactive mode (see browser)
+npm run test:e2e:watch -- --puppeteer-interactive
+
+# Control execution speed
+npm run test:e2e:watch -- --puppeteer-interactive --puppeteer-slowmo=200
+
+# Open devtools automatically
+npm run test:e2e:watch -- --puppeteer-devtools
+```
+
+### Testing on Alternate Environments
+
+If not using `wp-env`, symlink the E2E test plugins:
+
+```bash
+cd /path/to/wordpress/wp-content/plugins
+ln -s /path/to/gutenberg/packages/e2e-tests/plugins/* .
+```
+
+Then run tests with custom configuration:
+
+```bash
+WP_BASE_URL=http://wp.test npm run test:e2e -- --wordpress-username=admin --wordpress-password=password
+```
+
+### Scenario Testing
+
+Simulate slow CPU or network conditions to isolate race conditions:
+
+```bash
+# Simulate slow CPU (4x slowdown)
+THROTTLE_CPU=4 npm run test:e2e
+
+# Simulate slow network (Fast 3G)
+SLOW_NETWORK=true npm run test:e2e
+
+# Simulate offline
+OFFLINE=true npm run test:e2e
+```
+
+## React Native Testing
+
+### Native Mobile Unit Tests
+
+Run React Native tests on Node without native dev tools:
+
+```bash
+# Run native mobile tests
+npm run test:native
+
+# Watch mode
+npm run test:native:watch
+
+# Debug mode
+npm run test:native:debug
+
+# Update snapshots
+npm run test:native:update
+```
+
+### Debugging Native Mobile Tests
+
+<Steps>
+  <Step title="Start Debug Mode">
+    ```bash
+    npm run test:native:debug
+    ```
+  </Step>
+  
+  <Step title="Open Chrome DevTools">
+    Open `chrome://inspect` in Chrome.
+  </Step>
+  
+  <Step title="Connect to Process">
+    Click "inspect" under the Remote Target section for `../../node_modules/.bin/jest`.
+  </Step>
+  
+  <Step title="Set Breakpoints">
+    Place breakpoints or `debugger;` statements in your code.
+  </Step>
+  
+  <Step title="Resume Execution">
+    Click the "Play" button to start test execution.
+  </Step>
+</Steps>
+
+## Performance Testing
+
+Performance tests measure key metrics like editor load time, typing response time, and block selection time:
+
+```bash
+# Run performance tests
+npm run test:performance
+
+# Debug performance tests
+npm run test:performance:debug
+
+# Compare across branches
+./bin/plugin/cli.js perf trunk v8.1.0 v8.0.0
+
+# Use specific test branch
+./bin/plugin/cli.js perf trunk v8.1.0 --tests-branch add/perf-tests-coverage
+```
+
+<Warning>
+Minimize background processes and avoid using your computer during performance testing to reduce external factors affecting results.
+</Warning>
+
+## Core Block Testing
+
+<Note>
+Every core block requires at least one set of fixture files for its main save function and one for each deprecation.
+</Note>
+
+These fixtures test block parsing and serialization. See the [integration tests fixtures readme](https://github.com/wordpress/gutenberg/blob/HEAD/test/integration/fixtures/blocks/README.md) for details.
+
+## Flaky Tests
+
+A test is **flaky** when it can pass and fail across multiple retry attempts without code changes.
+
+- Failed tests are automatically retried up to **twice** on CI
+- Flaky tests are reported to GitHub issues under the [`[Type] Flaky Test`](https://github.com/WordPress/gutenberg/issues?q=is%3Aissue+is%3Aopen+label%3A%22%5BType%5D+Flaky+Test%22) label
+- Tests that fail three times in a row are not considered flaky
+
+## Storybook
+
+Storybook allows testing and developing components in isolation:
+
+```bash
+# Launch Storybook locally
+npm run storybook:dev
+```
+
+View the live Storybook for the current `trunk` branch at [https://wordpress.github.io/gutenberg/](https://wordpress.github.io/gutenberg/)
+
+## Testing Best Practices
+
+<Tip>
+**Setup and Teardown:**
+- Use `beforeEach`/`afterEach` for test-specific setup
+- Use `beforeAll`/`afterAll` for suite-wide setup
+- Always clean up in `afterEach`/`afterAll` to prevent test pollution
+</Tip>
+
+### Mocking Dependencies
+
+```javascript
+import { isEnabled } from 'config';
+import { isBilboVisible } from '../bilbo';
+
+jest.mock( 'config', () => ( {
+    isEnabled: jest.fn( () => false ),
+} ) );
+
+describe( 'The bilbo module', () => {
+    test( 'bilbo should be visible by default', () => {
+        expect( isBilboVisible() ).toBe( true );
+    } );
+
+    test( 'bilbo should be invisible when the-ring is enabled', () => {
+        isEnabled.mockImplementationOnce( ( name ) => name === 'the-ring' );
+        expect( isBilboVisible() ).toBe( false );
+    } );
+} );
+```
+
+### Testing Globals
+
+Use Jest spies to test code that calls global methods:
+
+```javascript
+describe( 'my module', () => {
+    beforeAll( () => {
+        jest.spyOn( global, 'open' ).mockImplementation( () => true );
+    } );
+
+    test( 'opens new window', () => {
+        myModuleFunctionThatOpensANewWindow();
+        expect( global.open ).toHaveBeenCalled();
+    } );
+} );
+```
+
+## Complete Test Commands Reference
+
+### JavaScript
+
+```bash
+npm test                   # All JS tests with linting
+npm run test:unit         # Unit tests only
+npm run test:unit:watch   # Unit tests in watch mode
+npm run test:unit:debug   # Unit tests in debug mode
+npm run test:unit -- --updateSnapshot  # Update snapshots
+```
+
+### PHP
+
+```bash
+npm run test:php          # All PHP tests with linting
+npm run test:php:watch    # PHP tests in watch mode
+npm run test:unit:php     # PHP unit tests only
+composer test             # All PHP tests (alternative)
+vendor/bin/phpunit <file> # Specific test file
+```
+
+### E2E
+
+```bash
+npm run test:e2e          # All E2E tests
+npm run test:e2e:watch    # E2E in watch mode
+npm run test:e2e -- --headed  # Run with visible browser
+npm run test:e2e:debug    # E2E in debug mode
+```
+
+### Code Quality
+
+```bash
+npm run format            # Fix JS formatting
+npm run lint:js           # Check JS linting
+npm run lint:js:fix       # Fix JS linting
+npm run lint:php          # Check PHP standards
+vendor/bin/phpcbf         # Fix PHP standards
+vendor/bin/phpcs          # Check PHP standards (alternative)
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Code Contributions" icon="code" href="/contributing/code-contributions">
+    Set up your development environment
+  </Card>
+  <Card title="Coding Guidelines" icon="book" href="https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/code/coding-guidelines.md">
+    Learn the coding standards
+  </Card>
+</CardGroup>

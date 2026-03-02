@@ -1,0 +1,652 @@
+---
+title: Filters and Hooks System
+description: Master WordPress Block Editor filters and hooks to extend and customize block behavior, editor features, and rendering output.
+---
+
+Filters and hooks are the primary mechanisms for extending and customizing the WordPress Block Editor. They allow you to modify block behavior, editor settings, and rendering output without modifying core code.
+
+## Understanding the Hooks System
+
+WordPress uses the `@wordpress/hooks` package, which implements an event-driven architecture similar to WordPress PHP hooks:
+
+```bash
+npm install @wordpress/hooks --save
+```
+
+### Basic Hook Usage
+
+<CodeGroup>
+```js Adding a Filter
+import { addFilter } from '@wordpress/hooks';
+
+addFilter(
+  'hookName',
+  'namespace/identifier',
+  callback,
+  priority // optional, default 10
+);
+```
+
+```js Adding an Action
+import { addAction } from '@wordpress/hooks';
+
+addAction(
+  'hookName',
+  'namespace/identifier',
+  callback,
+  priority // optional, default 10
+);
+```
+
+```js Removing Hooks
+import { removeFilter, removeAction } from '@wordpress/hooks';
+
+removeFilter( 'hookName', 'namespace/identifier' );
+removeAction( 'hookName', 'namespace/identifier' );
+```
+</CodeGroup>
+
+<Note>
+**Namespace Requirement**: Unlike PHP hooks, JavaScript hooks require a unique namespace in the format `vendor/plugin/function`. This helps identify and manage callbacks.
+</Note>
+
+## Block Registration Filters
+
+### blocks.registerBlockType
+
+Modify block settings during client-side registration:
+
+<Tabs>
+  <Tab title="Add Custom Attributes">
+    ```js
+    import { addFilter } from '@wordpress/hooks';
+
+    function addCustomAttribute( settings, name ) {
+      if ( name !== 'core/paragraph' ) {
+        return settings;
+      }
+
+      return {
+        ...settings,
+        attributes: {
+          ...settings.attributes,
+          customId: {
+            type: 'string',
+            default: '',
+          },
+        },
+      };
+    }
+
+    addFilter(
+      'blocks.registerBlockType',
+      'my-plugin/add-custom-attribute',
+      addCustomAttribute
+    );
+    ```
+  </Tab>
+  <Tab title="Enable Class Name">
+    ```js
+    function addListBlockClassName( settings, name ) {
+      if ( name !== 'core/list' ) {
+        return settings;
+      }
+
+      return {
+        ...settings,
+        supports: {
+          ...settings.supports,
+          className: true,
+        },
+      };
+    }
+
+    addFilter(
+      'blocks.registerBlockType',
+      'my-plugin/list-block-classname',
+      addListBlockClassName
+    );
+    ```
+  </Tab>
+</Tabs>
+
+### Server-Side Block Registration
+
+#### block_type_metadata
+
+Filter raw metadata from `block.json` before processing:
+
+```php
+add_filter( 'block_type_metadata', 'customize_block_metadata' );
+
+function customize_block_metadata( $metadata ) {
+  // Only modify Heading blocks
+  if ( ! isset( $metadata['name'] ) || 'core/heading' !== $metadata['name'] ) {
+    return $metadata;
+  }
+
+  // Disable background color and gradients
+  if ( isset( $metadata['supports']['color'] ) ) {
+    $metadata['supports']['color']['background'] = false;
+    $metadata['supports']['color']['gradients'] = false;
+  }
+
+  return $metadata;
+}
+```
+
+#### block_type_metadata_settings
+
+Modify processed settings after metadata parsing:
+
+```php
+add_filter( 'block_type_metadata_settings', 'modify_block_settings', 10, 2 );
+
+function modify_block_settings( $settings, $metadata ) {
+  // Increase API version for all blocks
+  $settings['api_version'] = $metadata['apiVersion'] + 1;
+  return $settings;
+}
+```
+
+#### register_block_type_args
+
+Low-level filter applied right before block registration:
+
+```php
+add_filter( 'register_block_type_args', 'disable_color_controls', 10, 2 );
+
+function disable_color_controls( $args, $block_type ) {
+  $blocks_to_modify = [
+    'core/paragraph',
+    'core/heading',
+    'core/list',
+    'core/list-item',
+  ];
+
+  if ( in_array( $block_type, $blocks_to_modify, true ) ) {
+    $args['supports']['color'] = array(
+      'text'       => false,
+      'background' => false,
+      'link'       => false,
+    );
+  }
+
+  return $args;
+}
+```
+
+## Editor Block Filters
+
+### editor.BlockEdit
+
+Modify a block's edit component to add custom controls:
+
+```js
+import { createHigherOrderComponent } from '@wordpress/compose';
+import { InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, TextControl } from '@wordpress/components';
+import { addFilter } from '@wordpress/hooks';
+
+const withCustomControls = createHigherOrderComponent( ( BlockEdit ) => {
+  return ( props ) => {
+    const { name, attributes, setAttributes } = props;
+
+    // Only add controls to specific blocks
+    if ( name !== 'core/paragraph' ) {
+      return <BlockEdit { ...props } />;
+    }
+
+    return (
+      <>
+        <BlockEdit { ...props } />
+        <InspectorControls>
+          <PanelBody title="Custom Settings" initialOpen={ true }>
+            <TextControl
+              label="Custom ID"
+              value={ attributes.customId || '' }
+              onChange={ ( value ) => setAttributes( { customId: value } ) }
+            />
+          </PanelBody>
+        </InspectorControls>
+      </>
+    );
+  };
+}, 'withCustomControls' );
+
+addFilter(
+  'editor.BlockEdit',
+  'my-plugin/with-custom-controls',
+  withCustomControls
+);
+```
+
+<Warning>
+The `editor.BlockEdit` filter runs for all blocks and can impact performance. Use conditional rendering with `props.isSelected` when possible:
+
+```js
+{ props.isSelected && (
+  <InspectorControls>
+    {/* Your controls */}
+  </InspectorControls>
+) }
+```
+</Warning>
+
+### editor.BlockListBlock
+
+Modify the block wrapper component:
+
+<Tabs>
+  <Tab title="Add Class Name">
+    ```js
+    import { createHigherOrderComponent } from '@wordpress/compose';
+    import { addFilter } from '@wordpress/hooks';
+
+    const withClientIdClassName = createHigherOrderComponent(
+      ( BlockListBlock ) => {
+        return ( props ) => {
+          return (
+            <BlockListBlock
+              { ...props }
+              className={ `block-${ props.clientId }` }
+            />
+          );
+        };
+      },
+      'withClientIdClassName'
+    );
+
+    addFilter(
+      'editor.BlockListBlock',
+      'my-plugin/with-client-id-class',
+      withClientIdClassName
+    );
+    ```
+  </Tab>
+  <Tab title="Add Data Attributes">
+    ```js
+    const withCustomDataAttribute = createHigherOrderComponent(
+      ( BlockListBlock ) => {
+        return ( props ) => {
+          const wrapperProps = {
+            ...props.wrapperProps,
+            'data-custom-id': props.attributes.customId || '',
+            'data-block-name': props.name,
+          };
+          return <BlockListBlock { ...props } wrapperProps={ wrapperProps } />;
+        };
+      },
+      'withCustomDataAttribute'
+    );
+
+    addFilter(
+      'editor.BlockListBlock',
+      'my-plugin/with-custom-data-attribute',
+      withCustomDataAttribute
+    );
+    ```
+  </Tab>
+</Tabs>
+
+## Block Save Filters
+
+### blocks.getSaveElement
+
+Modify the saved block element:
+
+```js
+import { addFilter } from '@wordpress/hooks';
+
+function wrapCoverBlock( element, blockType, attributes ) {
+  if ( ! element || blockType.name !== 'core/cover' ) {
+    return element;
+  }
+
+  return (
+    <div className="cover-block-wrapper">
+      { element }
+    </div>
+  );
+}
+
+addFilter(
+  'blocks.getSaveElement',
+  'my-plugin/wrap-cover-block',
+  wrapCoverBlock
+);
+```
+
+### blocks.getSaveContent.extraProps
+
+Add extra props to the save element:
+
+```js
+function addCustomProps( props, blockType, attributes ) {
+  if ( blockType.name === 'core/paragraph' && attributes.customId ) {
+    return {
+      ...props,
+      'data-custom-id': attributes.customId,
+    };
+  }
+  return props;
+}
+
+addFilter(
+  'blocks.getSaveContent.extraProps',
+  'my-plugin/add-custom-props',
+  addCustomProps
+);
+```
+
+<Warning>
+**Validation Errors**: Modifying `blocks.getSaveContent.extraProps` can cause block validation errors when editing existing content. For existing content, use the server-side `render_block` filter instead.
+</Warning>
+
+## Front-End Rendering Filters
+
+### render_block
+
+Modify block output on the front end:
+
+```php
+add_filter( 'render_block', 'add_custom_class_to_paragraphs', 10, 2 );
+
+function add_custom_class_to_paragraphs( $block_content, $block ) {
+  if ( 'core/paragraph' !== $block['blockName'] ) {
+    return $block_content;
+  }
+
+  // Use HTML API for safe manipulation
+  $processor = new WP_HTML_Tag_Processor( $block_content );
+
+  if ( $processor->next_tag( 'p' ) ) {
+    $processor->add_class( 'custom-paragraph' );
+  }
+
+  return $processor->get_updated_html();
+}
+```
+
+### render_block_{namespace/block}
+
+Block-specific rendering filter:
+
+```php
+add_filter( 'render_block_core/heading', 'customize_heading_output', 10, 2 );
+
+function customize_heading_output( $block_content, $block ) {
+  $processor = new WP_HTML_Tag_Processor( $block_content );
+
+  // Add custom attributes to all headings
+  if ( $processor->next_tag() ) {
+    $processor->set_attribute( 'data-heading-level', $block['attrs']['level'] ?? 2 );
+  }
+
+  return $processor->get_updated_html();
+}
+```
+
+## Block Attributes Filter
+
+### blocks.getBlockAttributes
+
+Modify attributes during block parsing:
+
+```js
+import { addFilter } from '@wordpress/hooks';
+
+function lockParagraphBlocks( blockAttributes, blockType, innerHTML, attributes ) {
+  if ( 'core/paragraph' === blockType.name ) {
+    blockAttributes.lock = { move: true, remove: false };
+  }
+  return blockAttributes;
+}
+
+addFilter(
+  'blocks.getBlockAttributes',
+  'my-plugin/lock-paragraphs',
+  lockParagraphBlocks
+);
+```
+
+## Theme.json Filters
+
+### Server-Side Theme.json Filters
+
+WordPress provides four filters for different theme.json data layers:
+
+<Tabs>
+  <Tab title="wp_theme_json_data_default">
+    ```php
+    add_filter( 'wp_theme_json_data_default', 'modify_default_theme_json' );
+
+    function modify_default_theme_json( $theme_json ) {
+      $new_data = array(
+        'version'  => 3,
+        'settings' => array(
+          'color' => array(
+            'palette' => array(
+              array(
+                'slug'  => 'custom-default',
+                'color' => '#000000',
+                'name'  => 'Custom Default',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      return $theme_json->update_with( $new_data );
+    }
+    ```
+  </Tab>
+  <Tab title="wp_theme_json_data_theme">
+    ```php
+    add_filter( 'wp_theme_json_data_theme', 'enable_colors_for_admins' );
+
+    function enable_colors_for_admins( $theme_json ) {
+      if ( ! current_user_can( 'edit_theme_options' ) ) {
+        return $theme_json;
+      }
+
+      $new_data = array(
+        'version'  => 3,
+        'settings' => array(
+          'color' => array(
+            'background'       => true,
+            'custom'           => true,
+            'customDuotone'    => true,
+            'customGradient'   => true,
+            'defaultGradients' => true,
+            'defaultPalette'   => true,
+            'text'             => true,
+          ),
+        ),
+      );
+
+      return $theme_json->update_with( $new_data );
+    }
+    ```
+  </Tab>
+  <Tab title="wp_theme_json_data_blocks">
+    ```php
+    add_filter( 'wp_theme_json_data_blocks', 'modify_block_theme_json' );
+
+    function modify_block_theme_json( $theme_json ) {
+      // Modify data from blocks
+      return $theme_json;
+    }
+    ```
+  </Tab>
+  <Tab title="wp_theme_json_data_user">
+    ```php
+    add_filter( 'wp_theme_json_data_user', 'modify_user_theme_json' );
+
+    function modify_user_theme_json( $theme_json ) {
+      // Modify user customizations
+      return $theme_json;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Client-Side Settings Filter
+
+#### blockEditor.useSetting.before
+
+Modify block settings before rendering:
+
+```js
+import { addFilter } from '@wordpress/hooks';
+import { select } from '@wordpress/data';
+
+addFilter(
+  'blockEditor.useSetting.before',
+  'my-plugin/customize-settings',
+  ( settingValue, settingName, clientId, blockName ) => {
+    // Limit spacing units for columns
+    if ( blockName === 'core/column' && settingName === 'spacing.units' ) {
+      return [ 'px', 'rem' ];
+    }
+
+    // Disable text color for headings in media-text blocks
+    if ( blockName === 'core/heading' ) {
+      const { getBlockParents, getBlockName } = select( 'core/block-editor' );
+      const parents = getBlockParents( clientId, true );
+      const inMediaText = parents.some(
+        ( parentId ) => getBlockName( parentId ) === 'core/media-text'
+      );
+
+      if ( inMediaText && settingName === 'color.text' ) {
+        return false;
+      }
+    }
+
+    return settingValue;
+  }
+);
+```
+
+## Block Utility Filters
+
+### blocks.getBlockDefaultClassName
+
+Customize the default block class name:
+
+```js
+function setCustomClassName( className, blockName ) {
+  return blockName === 'core/code' ? 'my-custom-code' : className;
+}
+
+addFilter(
+  'blocks.getBlockDefaultClassName',
+  'my-plugin/custom-class-name',
+  setCustomClassName
+);
+```
+
+### blocks.switchToBlockType.transformedBlock
+
+Filter individual transform results:
+
+```js
+function customizeTransform( transformedBlock, blocks, transformation ) {
+  // Modify transformedBlock
+  return transformedBlock;
+}
+
+addFilter(
+  'blocks.switchToBlockType.transformedBlock',
+  'my-plugin/customize-transform',
+  customizeTransform
+);
+```
+
+## Hook Events
+
+### hookAdded and hookRemoved
+
+Actions triggered when filters/actions are added or removed:
+
+```js
+import { addAction } from '@wordpress/hooks';
+
+addAction( 'hookAdded', 'my-plugin/track-hooks', ( hookName, namespace ) => {
+  console.log( `Hook added: ${ hookName } (${ namespace })` );
+} );
+
+addAction( 'hookRemoved', 'my-plugin/track-hooks', ( hookName, namespace ) => {
+  console.log( `Hook removed: ${ hookName } (${ namespace })` );
+} );
+```
+
+## Common Patterns
+
+### Conditional Hook Application
+
+```js
+function conditionalFilter( value, ...args ) {
+  // Only apply in specific contexts
+  const postType = select( 'core/editor' ).getCurrentPostType();
+
+  if ( postType === 'page' ) {
+    // Modify for pages
+    return modifiedValue;
+  }
+
+  return value;
+}
+```
+
+### Chaining Multiple Modifications
+
+```php
+// Each filter modifies the content further
+add_filter( 'render_block', 'first_modification', 10, 2 );
+add_filter( 'render_block', 'second_modification', 20, 2 );
+add_filter( 'render_block', 'third_modification', 30, 2 );
+```
+
+### Using Higher-Order Components
+
+```js
+import { compose } from '@wordpress/compose';
+
+const enhance = compose(
+  withCustomAttribute,
+  withCustomControls,
+  withCustomWrapper
+);
+
+addFilter(
+  'editor.BlockEdit',
+  'my-plugin/enhance-blocks',
+  enhance
+);
+```
+
+## Best Practices
+
+1. **Use unique namespaces**: Format as `vendor/plugin/function` to avoid conflicts
+2. **Check block names**: Always verify the block type before applying modifications
+3. **Mind the priority**: Lower numbers run first (default is 10)
+4. **Use HTML API**: For server-side rendering, prefer `WP_HTML_Tag_Processor` over regex
+5. **Avoid validation errors**: Use `render_block` for existing content modifications
+6. **Test thoroughly**: Hooks can have unexpected interactions - test edge cases
+7. **Document your hooks**: Explain why hooks are needed and what they modify
+8. **Handle undefined values**: Always check if attributes or properties exist before using them
+
+## Performance Considerations
+
+- **editor.BlockEdit** runs for every block - use conditional rendering
+- Cache expensive computations in filter callbacks
+- Remove hooks when no longer needed using `removeFilter`/`removeAction`
+- Avoid synchronous API calls in filter callbacks
+
+## Next Steps
+
+- Explore [Theme.json Configuration](/guides/theme-json) for declarative customization
+- Learn about [Data Management](/guides/data-management) for dynamic features
+- Read [Editor Customization](/guides/editor-customization) for UI modifications
+- Check the [Block Filters Reference](https://developer.wordpress.org/block-editor/reference-guides/filters/block-filters/)

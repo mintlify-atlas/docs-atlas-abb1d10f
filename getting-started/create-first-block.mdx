@@ -1,0 +1,545 @@
+---
+title: Create Your First Block
+description: Complete tutorial for building a custom WordPress block from scratch
+---
+
+This comprehensive tutorial guides you through creating a custom WordPress block using modern development practices. You'll build a fully functional block and understand how each piece works together.
+
+## What You'll Build
+
+You'll create a custom "Call to Action" block that allows users to:
+- Add a title and description
+- Include a button with customizable text and link
+- Style the block with custom colors
+
+By the end, you'll understand block registration, the edit/save pattern, and how to use WordPress block components.
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **Node.js** v20.10.0+ and **npm** v10.2.3+
+- A **WordPress installation** (local development environment recommended)
+- Basic knowledge of **JavaScript** and **React**
+- Familiarity with the **terminal/command line**
+
+<Tip>
+If you haven't set up a development environment yet, check out the [Development Environment](/getting-started/development-environment) guide first.
+</Tip>
+
+## Step 1: Scaffold Your Block
+
+Use the official `@wordpress/create-block` tool to generate your block's foundation:
+
+```bash
+npx @wordpress/create-block@latest cta-block --namespace=my-company
+```
+
+<Note>
+Replace `my-company` with your own unique namespace. This helps prevent naming conflicts with other plugins.
+</Note>
+
+This command creates a new directory called `cta-block` with the following structure:
+
+```
+cta-block/
+├── build/              # Compiled files (auto-generated)
+├── src/                # Source files you'll edit
+│   ├── block.json      # Block configuration
+│   ├── index.js        # Block registration
+│   ├── edit.js         # Editor component
+│   ├── save.js         # Frontend output
+│   ├── editor.scss     # Editor styles
+│   └── style.scss      # Frontend styles
+├── cta-block.php       # Main plugin file
+└── package.json        # Dependencies and scripts
+```
+
+## Step 2: Navigate and Start Development
+
+<Steps>
+  <Step title="Enter the Plugin Directory">
+    ```bash
+    cd cta-block
+    ```
+  </Step>
+
+  <Step title="Start the Development Build">
+    ```bash
+    npm start
+    ```
+
+    This starts webpack in watch mode, automatically rebuilding your block when you make changes.
+  </Step>
+
+  <Step title="Install the Plugin">
+    Copy or symlink the plugin to your WordPress installation:
+
+    ```bash
+    # Create a symbolic link
+    ln -s $(pwd) /path/to/wordpress/wp-content/plugins/cta-block
+    ```
+
+    Then activate "Cta Block" in your WordPress admin under **Plugins**.
+  </Step>
+</Steps>
+
+## Step 3: Configure Block Metadata
+
+The `block.json` file contains your block's metadata and configuration. Update it with meaningful information:
+
+```json src/block.json
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "my-company/cta-block",
+    "version": "0.1.0",
+    "title": "Call to Action",
+    "category": "widgets",
+    "icon": "megaphone",
+    "description": "A customizable call-to-action block with title, text, and button.",
+    "example": {},
+    "supports": {
+        "html": false,
+        "color": {
+            "background": true,
+            "text": true
+        },
+        "spacing": {
+            "padding": true,
+            "margin": true
+        }
+    },
+    "attributes": {
+        "title": {
+            "type": "string",
+            "default": "Ready to get started?"
+        },
+        "description": {
+            "type": "string",
+            "default": "Join thousands of happy customers today."
+        },
+        "buttonText": {
+            "type": "string",
+            "default": "Get Started"
+        },
+        "buttonUrl": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "textdomain": "cta-block",
+    "editorScript": "file:./index.js",
+    "editorStyle": "file:./index.css",
+    "style": "file:./style-index.css"
+}
+```
+
+### Understanding Block Attributes
+
+Attributes define the data your block stores. Each attribute has:
+- **type**: The data type (`string`, `number`, `boolean`, `array`, `object`)
+- **default**: The initial value when the block is inserted
+
+<Tip>
+The `supports` property enables built-in WordPress features like color controls and spacing options without writing extra code.
+</Tip>
+
+## Step 4: Build the Edit Component
+
+The edit component defines what users see when editing the block in the WordPress admin. Replace the contents of `src/edit.js`:
+
+```javascript src/edit.js
+import { __ } from '@wordpress/i18n';
+import { useBlockProps, RichText, InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, TextControl } from '@wordpress/components';
+import './editor.scss';
+
+export default function Edit({ attributes, setAttributes }) {
+    const { title, description, buttonText, buttonUrl } = attributes;
+
+    return (
+        <>
+            <InspectorControls>
+                <PanelBody title={__('Button Settings', 'cta-block')}>
+                    <TextControl
+                        label={__('Button URL', 'cta-block')}
+                        value={buttonUrl}
+                        onChange={(value) => setAttributes({ buttonUrl: value })}
+                        placeholder="https://example.com"
+                    />
+                </PanelBody>
+            </InspectorControls>
+
+            <div {...useBlockProps({ className: 'cta-block' })}>
+                <RichText
+                    tagName="h2"
+                    className="cta-block__title"
+                    value={title}
+                    onChange={(value) => setAttributes({ title: value })}
+                    placeholder={__('Enter title...', 'cta-block')}
+                />
+
+                <RichText
+                    tagName="p"
+                    className="cta-block__description"
+                    value={description}
+                    onChange={(value) => setAttributes({ description: value })}
+                    placeholder={__('Enter description...', 'cta-block')}
+                />
+
+                <RichText
+                    tagName="span"
+                    className="cta-block__button"
+                    value={buttonText}
+                    onChange={(value) => setAttributes({ buttonText: value })}
+                    placeholder={__('Button text...', 'cta-block')}
+                />
+            </div>
+        </>
+    );
+}
+```
+
+### Key Concepts in the Edit Component
+
+<AccordionGroup>
+  <Accordion title="useBlockProps()">
+    This React hook provides essential props for the block wrapper, including:
+    - Class names for styling
+    - Data attributes for WordPress
+    - Accessibility attributes
+
+    Always spread these props on your root element: `<div {...useBlockProps()}>`
+  </Accordion>
+
+  <Accordion title="RichText Component">
+    `RichText` allows users to edit text inline with basic formatting. Key props:
+    - `tagName`: HTML element to render (h1, h2, p, span, etc.)
+    - `value`: The current text value from attributes
+    - `onChange`: Function to update the attribute
+    - `placeholder`: Placeholder text when empty
+  </Accordion>
+
+  <Accordion title="InspectorControls">
+    This component adds controls to the block settings sidebar (right side of the editor). Use it for advanced options that don't need to be inline.
+  </Accordion>
+
+  <Accordion title="Internationalization">
+    The `__()` function marks strings for translation. Always wrap user-facing text:
+
+    ```javascript
+    __('Text to translate', 'text-domain')
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Step 5: Build the Save Component
+
+The save component defines the HTML saved to the database and rendered on the frontend. Update `src/save.js`:
+
+```javascript src/save.js
+import { useBlockProps, RichText } from '@wordpress/block-editor';
+
+export default function save({ attributes }) {
+    const { title, description, buttonText, buttonUrl } = attributes;
+
+    return (
+        <div {...useBlockProps.save({ className: 'cta-block' })}>
+            <RichText.Content
+                tagName="h2"
+                className="cta-block__title"
+                value={title}
+            />
+
+            <RichText.Content
+                tagName="p"
+                className="cta-block__description"
+                value={description}
+            />
+
+            {buttonUrl ? (
+                <a
+                    href={buttonUrl}
+                    className="cta-block__button"
+                >
+                    <RichText.Content tagName="span" value={buttonText} />
+                </a>
+            ) : (
+                <span className="cta-block__button">
+                    <RichText.Content tagName="span" value={buttonText} />
+                </span>
+            )}
+        </div>
+    );
+}
+```
+
+<Warning>
+The save function must be a **pure function** that returns static HTML based only on attributes. Do not:
+- Use hooks other than `useBlockProps.save()`
+- Make API calls
+- Use conditional rendering based on external state
+- Include interactive JavaScript
+
+Changing the save function's output invalidates existing blocks, requiring a block deprecation strategy.
+</Warning>
+
+## Step 6: Add Styles
+
+### Editor Styles
+
+Add editor-specific styles in `src/editor.scss`:
+
+```scss src/editor.scss
+.wp-block-my-company-cta-block {
+    .cta-block {
+        padding: 2rem;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        text-align: center;
+
+        &__title {
+            margin-top: 0;
+            font-size: 2rem;
+        }
+
+        &__description {
+            margin-bottom: 1.5rem;
+            font-size: 1.125rem;
+        }
+
+        &__button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #0073aa;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    }
+}
+```
+
+### Frontend Styles
+
+Add production styles in `src/style.scss`:
+
+```scss src/style.scss
+.cta-block {
+    padding: 3rem 2rem;
+    text-align: center;
+    background: #f7f7f7;
+    border-radius: 8px;
+
+    &__title {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    &__description {
+        margin-bottom: 2rem;
+        font-size: 1.25rem;
+        color: #555;
+    }
+
+    &__button {
+        display: inline-block;
+        padding: 1rem 2rem;
+        background: #0073aa;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: 600;
+        transition: background 0.3s ease;
+
+        &:hover {
+            background: #005a87;
+        }
+    }
+}
+```
+
+## Step 7: Test Your Block
+
+<Steps>
+  <Step title="Verify the Build">
+    Check your terminal where `npm start` is running. You should see:
+
+    ```
+    webpack compiled successfully
+    ```
+  </Step>
+
+  <Step title="Add the Block to a Post">
+    1. Create a new post or page in WordPress
+    2. Click the block inserter (+)
+    3. Search for "Call to Action"
+    4. Click to insert the block
+  </Step>
+
+  <Step title="Customize the Block">
+    - Edit the title and description inline
+    - Click the block, then check the sidebar settings (right side)
+    - Enter a button URL in the "Button Settings" panel
+    - Use the block toolbar to change colors and spacing
+  </Step>
+
+  <Step title="Preview and Publish">
+    Preview your post to see the block on the frontend. The styles should match your SCSS definitions.
+  </Step>
+</Steps>
+
+## Understanding the Block Lifecycle
+
+Here's how WordPress processes your block:
+
+<Steps>
+  <Step title="Registration">
+    `src/index.js` calls `registerBlockType()` with metadata from `block.json`, registering your block with WordPress.
+  </Step>
+
+  <Step title="Insertion">
+    When a user adds your block, WordPress:
+    - Creates a new block instance
+    - Initializes attributes with default values
+    - Renders the Edit component
+  </Step>
+
+  <Step title="Editing">
+    As users interact with the block:
+    - Changes call `setAttributes()` to update data
+    - React re-renders the Edit component
+    - WordPress marks the post as having unsaved changes
+  </Step>
+
+  <Step title="Saving">
+    When the user saves the post:
+    - WordPress calls your Save component with current attributes
+    - The returned HTML is serialized with block delimiters
+    - The result is saved to the database:
+
+    ```html
+    <!-- wp:my-company/cta-block {"title":"...","buttonUrl":"..."} -->
+    <div class="cta-block">...</div>
+    <!-- /wp:my-company/cta-block -->
+    ```
+  </Step>
+
+  <Step title="Frontend Rendering">
+    On the frontend:
+    - WordPress parses the block comments
+    - Extracts the saved HTML
+    - Enqueues your `style.scss` CSS
+    - Renders the content to visitors
+  </Step>
+</Steps>
+
+## Dynamic Blocks (Advanced)
+
+Static blocks save HTML to the database. **Dynamic blocks** render on the server using PHP, perfect for:
+- Displaying data that changes (latest posts, user info)
+- Complex logic that shouldn't run in JavaScript
+- Better performance for heavy computations
+
+To create a dynamic block, use the `--variant=dynamic` flag:
+
+```bash
+npx @wordpress/create-block@latest my-dynamic-block --variant=dynamic
+```
+
+This generates a `render.php` file instead of a `save.js` file. The PHP template renders the block on each page load.
+
+## Production Build
+
+Before deploying your block, create an optimized production build:
+
+<Steps>
+  <Step title="Stop the Development Build">
+    Press `Ctrl+C` in the terminal where `npm start` is running.
+  </Step>
+
+  <Step title="Run Production Build">
+    ```bash
+    npm run build
+    ```
+
+    This creates minified, optimized files in the `build/` directory.
+  </Step>
+
+  <Step title="Create a Plugin ZIP">
+    ```bash
+    npm run plugin-zip
+    ```
+
+    This generates `cta-block.zip` ready for distribution or installation on other WordPress sites.
+  </Step>
+</Steps>
+
+<Note>
+The production build removes development warnings, minifies code, and optimizes assets for better performance.
+</Note>
+
+## Next Steps
+
+Now that you've built your first block, explore more advanced topics:
+
+<CardGroup cols={2}>
+  <Card title="Block Supports API" icon="toggle-on" href="https://developer.wordpress.org/block-editor/reference-guides/block-api/block-supports/">
+    Add built-in features like alignment, colors, and typography
+  </Card>
+  <Card title="Block Patterns" icon="th-large" href="https://developer.wordpress.org/block-editor/reference-guides/block-api/block-patterns/">
+    Create reusable block layouts
+  </Card>
+  <Card title="InnerBlocks" icon="layer-group" href="https://developer.wordpress.org/block-editor/reference-guides/components/inner-blocks/">
+    Build blocks that contain other blocks
+  </Card>
+  <Card title="Block Editor Handbook" icon="book-open" href="https://developer.wordpress.org/block-editor/">
+    Complete documentation and API reference
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Block doesn't appear in the inserter">
+    - Ensure the plugin is activated
+    - Check that `npm start` or `npm run build` completed without errors
+    - Look for JavaScript errors in the browser console
+    - Verify `block.json` has valid JSON syntax
+  </Accordion>
+
+  <Accordion title="'Block validation failed' error">
+    This means the saved HTML doesn't match the current Save component output. Common causes:
+    - You modified the Save component after saving content
+    - Class names or HTML structure changed
+
+    Solutions:
+    - Use browser DevTools to compare saved HTML with expected output
+    - Implement a [block deprecation](https://developer.wordpress.org/block-editor/reference-guides/block-api/block-deprecation/)
+    - Clear and re-save affected posts
+  </Accordion>
+
+  <Accordion title="Styles not appearing">
+    - Check that SCSS files are imported in `index.js`
+    - Verify webpack compiled successfully (check terminal)
+    - Hard refresh your browser (Ctrl+Shift+R)
+    - Check that class names in JS match those in SCSS
+  </Accordion>
+
+  <Accordion title="Attributes not saving">
+    - Ensure you're calling `setAttributes()` in the Edit component
+    - Verify attribute names match between `block.json`, Edit, and Save
+    - Check browser console for JavaScript errors
+  </Accordion>
+</AccordionGroup>
+
+## Additional Resources
+
+- [Block Editor Handbook](https://developer.wordpress.org/block-editor/) - Official documentation
+- [Gutenberg GitHub Repository](https://github.com/WordPress/gutenberg) - Source code and issues
+- [Block Editor Components](https://developer.wordpress.org/block-editor/reference-guides/components/) - Available UI components
+- [WordPress Developer Blog](https://developer.wordpress.org/blog/) - Tutorials and updates

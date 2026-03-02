@@ -1,0 +1,397 @@
+---
+title: Code Contributions
+description: How to set up your development environment and contribute code to WordPress Gutenberg
+---
+
+This guide walks you through setting up your local development environment and contributing code to the Gutenberg project.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+### Required Software
+
+<Steps>
+  <Step title="Node.js and npm">
+    Gutenberg requires **Node.js v20** and **npm v10**. We recommend using [Node Version Manager (nvm)](https://github.com/nvm-sh/nvm) for easy installation and management.
+    
+    ```bash
+    # Using nvm
+    nvm install 20
+    nvm use 20
+    ```
+  </Step>
+  
+  <Step title="Git">
+    Install [Git](https://git-scm.com/) for source control. You'll also need a [GitHub account](https://github.com) to contribute.
+  </Step>
+  
+  <Step title="Docker Desktop (Recommended)">
+    Install [Docker](https://www.docker.com/products/docker-desktop) to use the `wp-env` package for local WordPress development.
+    
+    <Note>
+    On Windows 10 Home Edition, follow the [Docker installation instructions for WSL2](https://docs.docker.com/docker-for-windows/wsl/).
+    </Note>
+    
+    Alternatively, you can use [Local](https://localwp.com/), [WampServer](https://wampserver.aviatechno.net/), or [MAMP](https://www.mamp.info/).
+  </Step>
+  
+  <Step title="Composer (for PHP development)">
+    Install [Composer](https://getcomposer.org/) for PHP dependency management and testing.
+  </Step>
+</Steps>
+
+### Optional Tools
+
+- **GitHub CLI**: The [GitHub CLI](https://cli.github.com/) is helpful for checking out pull requests locally
+- **Python**: Required for some install scripts (may be pre-installed on your OS)
+
+## Setting Up Your Development Environment
+
+### 1. Fork and Clone the Repository
+
+<Steps>
+  <Step title="Fork the Repository">
+    Go to the [Gutenberg repository](https://github.com/WordPress/gutenberg) on GitHub and click **Fork** to create a copy in your account.
+  </Step>
+  
+  <Step title="Clone Your Fork">
+    Clone your forked repository to your local machine:
+    
+    ```bash
+    git clone https://github.com/YOUR_GITHUB_USERNAME/gutenberg.git
+    cd gutenberg
+    ```
+  </Step>
+  
+  <Step title="Add Upstream Remote">
+    Add the main Gutenberg repository as an upstream remote:
+    
+    ```bash
+    git remote add upstream https://github.com/WordPress/gutenberg.git
+    git remote -v
+    ```
+  </Step>
+</Steps>
+
+### 2. Install Dependencies and Build
+
+```bash
+# Install JavaScript and PHP dependencies
+npm install
+composer install
+
+# Build Gutenberg in development mode with watch
+npm run dev
+
+# Or build for production
+npm run build
+```
+
+<Tip>
+Use `npm run dev` during development for continuous builds that automatically update as you change source files. The dev build includes additional warnings and errors to help with troubleshooting.
+</Tip>
+
+### 3. Set Up Local WordPress Environment
+
+#### Using wp-env (Recommended)
+
+The `@wordpress/env` package provides a quick way to create a WordPress environment using Docker:
+
+```bash
+# Check wp-env status
+npm run wp-env status
+
+# Start wp-env (only if not already running)
+npm run wp-env start
+
+# Stop wp-env
+npm run wp-env stop
+
+# Destroy the environment completely
+npm run wp-env destroy
+```
+
+<Note>
+The `wp-env start` command creates a Docker container with WordPress and automatically activates your local Gutenberg build as a plugin.
+</Note>
+
+**Access Your Environment:**
+
+- WordPress site: `http://localhost:8888`
+- Admin dashboard: `http://localhost:8888/wp-admin/`
+  - Username: `admin`
+  - Password: `password`
+- phpMyAdmin: `http://localhost:9000`
+
+#### Using MAMP or Local
+
+If you prefer MAMP or Local, create a symlink to the Gutenberg directory in your `wp-content/plugins/` directory:
+
+```bash
+cd /path/to/wordpress/wp-content/plugins
+ln -s /path/to/gutenberg gutenberg
+```
+
+## Git Workflow
+
+Gutenberg follows a standard pull request workflow:
+
+<Steps>
+  <Step title="Create a Feature Branch">
+    Create a new branch for your changes using a descriptive name with a prefix:
+    
+    ```bash
+    git switch -c add/my-feature
+    ```
+    
+    **Branch Naming Prefixes:**
+    - `add/` - Add a new feature
+    - `update/` - Update an existing feature
+    - `fix/` - Fix an existing issue
+    - `try/` - Experimental feature
+    - `remove/` - Remove an existing feature
+  </Step>
+  
+  <Step title="Make Your Changes">
+    Make your code changes, following the [coding guidelines](/contributing/code-contributions#coding-standards). Test thoroughly.
+  </Step>
+  
+  <Step title="Run Tests">
+    Confirm all tests pass before committing:
+    
+    ```bash
+    # Run all JavaScript tests and linting
+    npm test
+    
+    # Run all PHP tests and linting
+    npm run test:php
+    ```
+    
+    See the [testing guide](/contributing/testing) for more details.
+  </Step>
+  
+  <Step title="Commit Your Changes">
+    Commit with a [good commit message](https://make.wordpress.org/core/handbook/best-practices/commit-messages/):
+    
+    ```bash
+    git commit -m "Add gallery block feature"
+    ```
+  </Step>
+  
+  <Step title="Push to Your Fork">
+    Push your branch to your forked repository:
+    
+    ```bash
+    git push -u origin add/my-feature
+    ```
+  </Step>
+  
+  <Step title="Create a Pull Request">
+    Go to your forked repository on GitHub. GitHub will automatically detect your new branch and offer to create a pull request. Click the link and fill out the PR template.
+  </Step>
+  
+  <Step title="Address Feedback">
+    Respond to any code review feedback. Make additional changes locally and push them to the same branch. The PR will automatically update.
+    
+    ```bash
+    # Make changes, then:
+    git commit -m "Address review feedback"
+    git push
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+Share your work early by opening a pull request even before it's complete. You can mark it as a draft to indicate it's a work in progress.
+</Tip>
+
+## Keeping Your Branch Up to Date
+
+When working on long-running pull requests, you'll need to keep your branch up to date with the main `trunk` branch:
+
+```bash
+# Fetch latest changes from upstream
+git fetch upstream
+
+# Rebase your branch on trunk
+git checkout your-branch-name
+git rebase upstream/trunk
+
+# Force push (safely) to your fork
+git push --force-with-lease origin your-branch-name
+```
+
+<Warning>
+Always use `--force-with-lease` instead of `--force` when force pushing. This ensures you don't accidentally overwrite someone else's work.
+</Warning>
+
+### Keeping Your Fork Synced
+
+Regularly update your fork's `trunk` branch:
+
+```bash
+git fetch upstream
+git checkout trunk
+git merge upstream/trunk
+git push
+```
+
+## Coding Standards
+
+### JavaScript
+
+- Follow [WordPress JavaScript coding standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/javascript/)
+- Use [ESLint](https://eslint.org/) for linting (automatically configured)
+- Use [Prettier](https://prettier.io/) for formatting
+
+**Linting Commands:**
+
+```bash
+# Check JavaScript linting
+npm run lint:js
+
+# Fix JavaScript linting issues automatically
+npm run lint:js:fix
+
+# Format code with Prettier
+npm run format
+```
+
+### PHP
+
+- Follow [WordPress PHP coding standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/)
+- Use [PHP_CodeSniffer](https://github.com/squizlabs/PHP_CodeSniffer) for standards checking
+
+**PHP Linting Commands:**
+
+```bash
+# Check PHP coding standards
+npm run lint:php
+# Or: vendor/bin/phpcs
+
+# Fix PHP coding standards automatically
+vendor/bin/phpcbf
+
+# Fix specific file
+vendor/bin/phpcbf path/to/file.php
+```
+
+## Development Tools Setup
+
+### Visual Studio Code
+
+We recommend configuring VS Code with the following extensions:
+
+#### EditorConfig
+
+Install [EditorConfig for VS Code](https://marketplace.visualstudio.com/items?itemName=editorconfig.editorconfig) to automatically match the project's editor rules.
+
+#### ESLint
+
+Install [ESLint Extension](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) and add to your settings:
+
+```json
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  }
+}
+```
+
+#### Prettier
+
+Install [Prettier - Code formatter](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) and configure:
+
+```json
+{
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  }
+}
+```
+
+#### TypeScript
+
+TypeScript support is built into VS Code. The project uses TypeScript via JSDoc to [type check JavaScript files](https://www.typescriptlang.org/docs/handbook/type-checking-javascript-files.html).
+
+## Pull Request Guidelines
+
+### Before Submitting
+
+- Ensure all tests pass
+- Fix all linting and formatting issues (enforced by CI)
+- Write tests for new functionality
+- Update documentation as needed
+
+### PR Best Practices
+
+<Note>
+- Non-trivial PRs should be preceded by a related issue
+- Keep PRs atomic—one conceptual change per PR
+- Write descriptive PR titles that explain **what** is being fixed, not **how**
+- Label your PR appropriately (e.g., `[Type] Bug`, `[Type] Enhancement`)
+</Note>
+
+**Example PR Titles:**
+
+- ✅ Good: "Fix editor breakage when clicking copy block button"
+- ❌ Bad: "Check for nullable object in component"
+
+### Getting Your PR Reviewed
+
+If you're having trouble getting your PR reviewed:
+
+1. Make sure it's properly labeled
+2. Ensure all CI checks pass
+3. Ask for review in the `#core-editor` Slack channel
+4. Tag relevant team members if appropriate
+
+See [How To Get Your Pull Request Reviewed](https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/code/how-to-get-your-pull-request-reviewed.md) for more tips.
+
+## Key Directories
+
+Understanding the repository structure:
+
+- `/packages/` - JavaScript packages (each has README.md and CHANGELOG.md)
+- `/lib/` - PHP code
+- `/lib/compat/wordpress-X.Y/` - Version-specific features
+- `/phpunit/` - PHP tests
+- `/docs/` - Documentation
+  - `/docs/contributors/` - Contributing guides
+  - `/docs/explanations/architecture/` - System architecture
+  - `/docs/how-to-guides/` - Implementation tutorials
+  - `/docs/reference-guides/` - API documentation
+
+## Common Pitfalls
+
+<Warning>
+- PHP features in `lib/compat/` MUST target a specific `wordpress-X.Y/` subdirectory
+- `block-editor` is WordPress-agnostic—never add `core-data` dependencies to it
+- Avoid using private APIs in bundled packages
+- `@wordpress/build` is used by plugins targeting WordPress Core—avoid Gutenberg-specific changes
+</Warning>
+
+## Additional Resources
+
+- [Coding Guidelines](https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/code/coding-guidelines.md)
+- [Testing Overview](/contributing/testing)
+- [Git Workflow](https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/code/git-workflow.md)
+- [Repository Management](https://github.com/WordPress/gutenberg/blob/trunk/docs/contributors/repository-management.md)
+- [React Native Development](https://github.com/WordPress/gutenberg/tree/trunk/docs/contributors/code/react-native)
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Testing Guide" icon="flask" href="/contributing/testing">
+    Learn how to write and run tests for your code
+  </Card>
+  <Card title="Browse Issues" icon="list" href="https://github.com/wordpress/gutenberg/issues?q=is%3Aopen+is%3Aissue+label%3A%22Good+First+Issue%22">
+    Find good first issues to work on
+  </Card>
+</CardGroup>

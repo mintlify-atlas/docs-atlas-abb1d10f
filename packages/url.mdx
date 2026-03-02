@@ -1,0 +1,669 @@
+---
+title: '@wordpress/url'
+description: 'A collection of utilities to manipulate URLs'
+---
+
+# URL
+
+The `@wordpress/url` package provides a comprehensive collection of utilities for manipulating URLs in JavaScript. It includes functions for working with query strings, validating URL components, and parsing URL parts.
+
+## Installation
+
+You can install the package using npm:
+
+```bash
+npm install @wordpress/url --save
+```
+
+<Note>
+This package assumes your code will run in an **ES2015+** environment. If you're targeting environments with limited support for modern JavaScript features, include the polyfill from `@wordpress/babel-preset-default`.
+</Note>
+
+## Query String Utilities
+
+### addQueryArgs( url, args )
+
+Appends arguments as querystring to the provided URL. If the URL already includes query arguments, the arguments are merged with (and take precedent over) the existing set.
+
+<ParamField path="url" type="string" required>
+  URL to which arguments should be appended. If omitted, only the resulting querystring is returned.
+</ParamField>
+
+<ParamField path="args" type="object" required>
+  Query arguments to apply to URL.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  URL with arguments applied.
+</ResponseField>
+
+```js
+import { addQueryArgs } from '@wordpress/url';
+
+const newURL = addQueryArgs( 'https://google.com', { q: 'test' } );
+// Result: "https://google.com/?q=test"
+```
+
+### buildQueryString( data )
+
+Generates URL-encoded query string using input query data. This function behaves equivalent to PHP's `http_build_query`, configured with encoding type PHP_QUERY_RFC3986 (spaces as `%20`).
+
+<ParamField path="data" type="object" required>
+  Data to encode.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Query string.
+</ResponseField>
+
+```js
+import { buildQueryString } from '@wordpress/url';
+
+const queryString = buildQueryString( {
+	simple: 'is ok',
+	arrays: [ 'are', 'fine', 'too' ],
+	objects: {
+		evenNested: {
+			ok: 'yes',
+		},
+	},
+} );
+// Result: "simple=is%20ok&arrays%5B0%5D=are&arrays%5B1%5D=fine&arrays%5B2%5D=too&objects%5BevenNested%5D%5Bok%5D=yes"
+```
+
+### getQueryArg( url, arg )
+
+Returns a single query argument of the URL.
+
+<ParamField path="url" type="string" required>
+  URL to parse.
+</ParamField>
+
+<ParamField path="arg" type="string" required>
+  Query arg name.
+</ParamField>
+
+<ResponseField name="return" type="string | undefined">
+  Query arg value.
+</ResponseField>
+
+```js
+import { getQueryArg } from '@wordpress/url';
+
+const foo = getQueryArg( 'https://wordpress.org?foo=bar&bar=baz', 'foo' );
+// Result: "bar"
+```
+
+### getQueryArgs( url )
+
+Returns an object of query arguments of the given URL. If the URL is invalid or has no querystring, an empty object is returned.
+
+<ParamField path="url" type="string" required>
+  URL to parse.
+</ParamField>
+
+<ResponseField name="return" type="object">
+  Query args object.
+</ResponseField>
+
+```js
+import { getQueryArgs } from '@wordpress/url';
+
+const args = getQueryArgs( 'https://wordpress.org?foo=bar&bar=baz' );
+// Result: { "foo": "bar", "bar": "baz" }
+```
+
+### getQueryString( url )
+
+Returns the query string part of the URL.
+
+<ParamField path="url" type="string" required>
+  The full URL.
+</ParamField>
+
+<ResponseField name="return" type="string | void">
+  The query string part of the URL.
+</ResponseField>
+
+```js
+import { getQueryString } from '@wordpress/url';
+
+const queryString = getQueryString(
+	'http://localhost:8080/this/is/a/test?query=true#fragment'
+);
+// Result: "query=true"
+```
+
+### hasQueryArg( url, arg )
+
+Determines whether the URL contains a given query arg.
+
+<ParamField path="url" type="string" required>
+  URL to check.
+</ParamField>
+
+<ParamField path="arg" type="string" required>
+  Query arg name.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether or not the URL contains the query arg.
+</ResponseField>
+
+```js
+import { hasQueryArg } from '@wordpress/url';
+
+const hasBar = hasQueryArg( 'https://wordpress.org?foo=bar&bar=baz', 'bar' );
+// Result: true
+```
+
+### removeQueryArgs( url, ...args )
+
+Removes arguments from the query string of the URL.
+
+<ParamField path="url" type="string" required>
+  URL to modify.
+</ParamField>
+
+<ParamField path="args" type="string[]" required>
+  Query arg names to remove.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Updated URL.
+</ResponseField>
+
+```js
+import { removeQueryArgs } from '@wordpress/url';
+
+const newUrl = removeQueryArgs(
+	'https://wordpress.org?foo=bar&bar=baz&baz=foobar',
+	'foo',
+	'bar'
+);
+// Result: "https://wordpress.org?baz=foobar"
+```
+
+## URL Parsing
+
+### getProtocol( url )
+
+Returns the protocol part of the URL.
+
+<ParamField path="url" type="string" required>
+  The full URL.
+</ParamField>
+
+<ResponseField name="return" type="string | void">
+  The protocol part of the URL.
+</ResponseField>
+
+```js
+import { getProtocol } from '@wordpress/url';
+
+const protocol1 = getProtocol( 'tel:012345678' ); // "tel:"
+const protocol2 = getProtocol( 'https://wordpress.org' ); // "https:"
+```
+
+### getAuthority( url )
+
+Returns the authority part of the URL.
+
+<ParamField path="url" type="string" required>
+  The full URL.
+</ParamField>
+
+<ResponseField name="return" type="string | void">
+  The authority part of the URL.
+</ResponseField>
+
+```js
+import { getAuthority } from '@wordpress/url';
+
+const authority1 = getAuthority( 'https://wordpress.org/help/' ); // "wordpress.org"
+const authority2 = getAuthority( 'https://localhost:8080/test/' ); // "localhost:8080"
+```
+
+### getPath( url )
+
+Returns the path part of the URL.
+
+<ParamField path="url" type="string" required>
+  The full URL.
+</ParamField>
+
+<ResponseField name="return" type="string | void">
+  The path part of the URL.
+</ResponseField>
+
+```js
+import { getPath } from '@wordpress/url';
+
+const path1 = getPath( 'http://localhost:8080/this/is/a/test?query=true' ); // "this/is/a/test"
+const path2 = getPath( 'https://wordpress.org/help/faq/' ); // "help/faq"
+```
+
+### getPathAndQueryString( url )
+
+Returns the path part and query string part of the URL.
+
+<ParamField path="url" type="string" required>
+  The full URL.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The path part and query string part of the URL.
+</ResponseField>
+
+```js
+import { getPathAndQueryString } from '@wordpress/url';
+
+const pathAndQuery = getPathAndQueryString(
+	'http://localhost:8080/this/is/a/test?query=true'
+);
+// Result: "/this/is/a/test?query=true"
+```
+
+### getFragment( url )
+
+Returns the fragment part of the URL.
+
+<ParamField path="url" type="string" required>
+  The full URL.
+</ParamField>
+
+<ResponseField name="return" type="string | void">
+  The fragment part of the URL.
+</ResponseField>
+
+```js
+import { getFragment } from '@wordpress/url';
+
+const fragment = getFragment(
+	'http://localhost:8080/this/is/a/test?query=true#fragment'
+);
+// Result: "#fragment"
+```
+
+### getFilename( url )
+
+Returns the filename part of the URL.
+
+<ParamField path="url" type="string" required>
+  The full URL.
+</ParamField>
+
+<ResponseField name="return" type="string | void">
+  The filename part of the URL.
+</ResponseField>
+
+```js
+import { getFilename } from '@wordpress/url';
+
+const filename1 = getFilename( 'http://localhost:8080/this/is/a/test.jpg' ); // "test.jpg"
+const filename2 = getFilename( '/this/is/a/test.png' ); // "test.png"
+```
+
+## URL Validation
+
+### isURL( url )
+
+Determines whether the given string looks like a URL.
+
+<ParamField path="url" type="string" required>
+  The string to scrutinise.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether or not it looks like a URL.
+</ResponseField>
+
+```js
+import { isURL } from '@wordpress/url';
+
+const result = isURL( 'https://wordpress.org' ); // true
+```
+
+### isEmail( email )
+
+Determines whether the given string looks like an email.
+
+<ParamField path="email" type="string" required>
+  The string to scrutinise.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether or not it looks like an email.
+</ResponseField>
+
+```js
+import { isEmail } from '@wordpress/url';
+
+const result = isEmail( 'hello@wordpress.org' ); // true
+```
+
+### isPhoneNumber( phoneNumber )
+
+Determines whether the given string looks like a phone number.
+
+<ParamField path="phoneNumber" type="string" required>
+  The string to scrutinize.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether or not it looks like a phone number.
+</ResponseField>
+
+```js
+import { isPhoneNumber } from '@wordpress/url';
+
+const result = isPhoneNumber( '+1 (555) 123-4567' ); // true
+```
+
+### isValidProtocol( protocol )
+
+Tests if a URL protocol is valid.
+
+<ParamField path="protocol" type="string" required>
+  The URL protocol.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if the argument is a valid protocol (e.g. http:, tel:).
+</ResponseField>
+
+```js
+import { isValidProtocol } from '@wordpress/url';
+
+const isValid = isValidProtocol( 'https:' ); // true
+const isNotValid = isValidProtocol( 'https :' ); // false
+```
+
+### isValidAuthority( authority )
+
+Checks for invalid characters within the provided authority.
+
+<ParamField path="authority" type="string" required>
+  A string containing the URL authority.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if the argument contains a valid authority.
+</ResponseField>
+
+```js
+import { isValidAuthority } from '@wordpress/url';
+
+const isValid = isValidAuthority( 'wordpress.org' ); // true
+const isNotValid = isValidAuthority( 'wordpress#org' ); // false
+```
+
+### isValidPath( path )
+
+Checks for invalid characters within the provided path.
+
+<ParamField path="path" type="string" required>
+  The URL path.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if the argument contains a valid path.
+</ResponseField>
+
+```js
+import { isValidPath } from '@wordpress/url';
+
+const isValid = isValidPath( 'test/path/' ); // true
+const isNotValid = isValidPath( '/invalid?test/path/' ); // false
+```
+
+### isValidQueryString( queryString )
+
+Checks for invalid characters within the provided query string.
+
+<ParamField path="queryString" type="string" required>
+  The query string.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if the argument contains a valid query string.
+</ResponseField>
+
+```js
+import { isValidQueryString } from '@wordpress/url';
+
+const isValid = isValidQueryString( 'query=true&another=false' ); // true
+const isNotValid = isValidQueryString( 'query=true?another=false' ); // false
+```
+
+### isValidFragment( fragment )
+
+Checks for invalid characters within the provided fragment.
+
+<ParamField path="fragment" type="string" required>
+  The URL fragment.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  True if the argument contains a valid fragment.
+</ResponseField>
+
+```js
+import { isValidFragment } from '@wordpress/url';
+
+const isValid = isValidFragment( '#valid-fragment' ); // true
+const isNotValid = isValidFragment( '#invalid-#fragment' ); // false
+```
+
+## URL Manipulation
+
+### prependHTTP( url )
+
+Prepends "http://" to a URL, if it looks like something that is meant to be a TLD.
+
+<ParamField path="url" type="string" required>
+  The URL to test.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The updated URL.
+</ResponseField>
+
+```js
+import { prependHTTP } from '@wordpress/url';
+
+const actualURL = prependHTTP( 'wordpress.org' );
+// Result: "http://wordpress.org"
+```
+
+### prependHTTPS( url )
+
+Prepends "https://" to a URL, if it looks like something that is meant to be a TLD.
+
+<ParamField path="url" type="string" required>
+  The URL to test.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The updated URL.
+</ResponseField>
+
+<Note>
+This function will not replace "http://" with "https://".
+</Note>
+
+```js
+import { prependHTTPS } from '@wordpress/url';
+
+const actualURL = prependHTTPS( 'wordpress.org' );
+// Result: "https://wordpress.org"
+```
+
+### filterURLForDisplay( url, maxLength )
+
+Returns a URL for display purposes.
+
+<ParamField path="url" type="string" required>
+  Original URL.
+</ParamField>
+
+<ParamField path="maxLength" type="number | null">
+  URL length limit.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Displayed URL.
+</ResponseField>
+
+```js
+import { filterURLForDisplay } from '@wordpress/url';
+
+const displayUrl = filterURLForDisplay(
+	'https://www.wordpress.org/gutenberg/'
+);
+// Result: "wordpress.org/gutenberg"
+
+const imageUrl = filterURLForDisplay(
+	'https://www.wordpress.org/wp-content/uploads/img.png',
+	20
+);
+// Result: "…ent/uploads/img.png"
+```
+
+### cleanForSlug( string )
+
+Performs basic cleanup of a string for use as a post slug. This approximates what `sanitize_title_with_dashes()` does in WordPress core.
+
+<ParamField path="string" type="string" required>
+  Title or slug to be processed.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Processed string.
+</ResponseField>
+
+```js
+import { cleanForSlug } from '@wordpress/url';
+
+const slug = cleanForSlug( 'Hello World!' );
+// Result: "hello-world"
+```
+
+<Note>
+This function converts Latin-1 Supplement and Latin Extended-A letters to basic Latin letters, removes combining diacritical marks, converts whitespace/periods/slashes to hyphens, removes non-word characters except hyphens, and converts to lowercase.
+</Note>
+
+### normalizePath( path )
+
+Returns a normalized path where equal query parameter values will be treated as identical, regardless of order.
+
+<ParamField path="path" type="string" required>
+  Original path.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Normalized path.
+</ResponseField>
+
+## Safe Decoding
+
+### safeDecodeURI( uri )
+
+Safely decodes a URI with `decodeURI`. Returns the URI unmodified if `decodeURI` throws an error.
+
+<ParamField path="uri" type="string" required>
+  URI to decode.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Decoded URI if possible.
+</ResponseField>
+
+```js
+import { safeDecodeURI } from '@wordpress/url';
+
+const badUri = safeDecodeURI( '%z' );
+// Result: "%z" (does not throw an Error)
+```
+
+### safeDecodeURIComponent( uriComponent )
+
+Safely decodes a URI component with `decodeURIComponent`. Returns the URI component unmodified if `decodeURIComponent` throws an error.
+
+<ParamField path="uriComponent" type="string" required>
+  URI component to decode.
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Decoded URI component if possible.
+</ResponseField>
+
+## Complete Example
+
+<CodeGroup>
+
+```js Query Parameters
+import { addQueryArgs, getQueryArgs, removeQueryArgs } from '@wordpress/url';
+
+// Add query parameters
+let url = addQueryArgs( 'https://example.com', {
+	page: 2,
+	filter: 'active'
+} );
+// Result: "https://example.com?page=2&filter=active"
+
+// Get query parameters
+const params = getQueryArgs( url );
+// Result: { page: "2", filter: "active" }
+
+// Remove query parameters
+url = removeQueryArgs( url, 'filter' );
+// Result: "https://example.com?page=2"
+```
+
+```js URL Parsing
+import { 
+	getProtocol, 
+	getAuthority, 
+	getPath,
+	getQueryString,
+	getFragment
+} from '@wordpress/url';
+
+const url = 'https://wordpress.org/plugins/gutenberg/?tab=reviews#top';
+
+console.log( getProtocol( url ) );        // "https:"
+console.log( getAuthority( url ) );       // "wordpress.org"
+console.log( getPath( url ) );            // "plugins/gutenberg"
+console.log( getQueryString( url ) );     // "tab=reviews"
+console.log( getFragment( url ) );        // "#top"
+```
+
+```js URL Validation
+import { isURL, isEmail, isPhoneNumber } from '@wordpress/url';
+
+function handleInput( value ) {
+	if ( isURL( value ) ) {
+		console.log( 'This is a URL' );
+	} else if ( isEmail( value ) ) {
+		console.log( 'This is an email' );
+	} else if ( isPhoneNumber( value ) ) {
+		console.log( 'This is a phone number' );
+	}
+}
+
+handleInput( 'https://wordpress.org' );  // "This is a URL"
+handleInput( 'hello@wordpress.org' );    // "This is an email"
+handleInput( '+1 (555) 123-4567' );      // "This is a phone number"
+```
+
+</CodeGroup>
+
+## Version
+
+Current version: **4.40.0**
+
+## Links
+
+- [GitHub Repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/url)
+- [npm Package](https://www.npmjs.com/package/@wordpress/url)

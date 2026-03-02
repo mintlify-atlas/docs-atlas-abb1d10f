@@ -1,0 +1,651 @@
+---
+title: '@wordpress/create-block'
+description: 'Official scaffolding tool for creating WordPress blocks with modern build setup.'
+---
+
+`@wordpress/create-block` is the official tool for scaffolding WordPress plugins that register blocks. It generates PHP, JS, and CSS code with a modern build setup requiring zero configuration.
+
+## Quick Start
+
+<Steps>
+
+<Step title="Generate a new block plugin">
+  ```bash
+  npx @wordpress/create-block@latest todo-list
+  ```
+  
+  This creates a new plugin folder named `todo-list`.
+</Step>
+
+<Step title="Navigate to the plugin directory">
+  ```bash
+  cd todo-list
+  ```
+</Step>
+
+<Step title="Start development">
+  ```bash
+  npm start
+  ```
+  
+  The build will automatically rebuild when you make changes.
+</Step>
+
+<Step title="Install the plugin">
+  Copy the generated folder to your WordPress `wp-content/plugins/` directory and activate it from the WordPress admin.
+</Step>
+
+</Steps>
+
+<Note>
+  Requires Node.js >= 20.10.0 and npm >= 10.2.3
+</Note>
+
+## Usage
+
+### Basic Command
+
+```bash
+npx @wordpress/create-block@latest [options] [slug]
+```
+
+The `slug` defines:
+- Block slug (for identification)
+- Output folder name
+- WordPress plugin name
+
+### Interactive Mode
+
+When you run the command without a slug, it prompts you for input:
+
+```bash Terminal
+$ npx @wordpress/create-block@latest
+
+? What is the slug for your block? my-awesome-block
+? What is the internal namespace for your block? my-namespace
+? What is the display title for your block? My Awesome Block
+? What is the short description for your block? A custom block for awesome things
+? What is the dashicon to make it easier to identify your block? star-filled
+? What category should the block be assigned? widgets
+```
+
+## Options
+
+### --template
+
+Specify an external npm package or local directory as a template.
+
+<CodeGroup>
+
+```bash Terminal (npm package)
+npx @wordpress/create-block@latest --template my-template-package
+```
+
+```bash Terminal (local directory)
+npx @wordpress/create-block@latest --template ./path/to/template-directory
+```
+
+</CodeGroup>
+
+### --variant
+
+Generate a dynamic block variant:
+
+```bash
+npx @wordpress/create-block@latest --variant dynamic
+```
+
+This creates a [dynamic block](https://developer.wordpress.org/block-editor/getting-started/glossary/#dynamic-block) that renders on the server.
+
+### --namespace
+
+Specify a custom namespace for your block:
+
+```bash
+npx @wordpress/create-block@latest my-block --namespace=my-namespace
+```
+
+This creates `my-namespace/my-block` instead of `create-block/my-block`.
+
+**Update the namespace in:**
+- `block.json` - the `name` property
+
+### --no-plugin
+
+Scaffold only block files without the plugin wrapper:
+
+```bash
+npx @wordpress/create-block@latest --no-plugin
+```
+
+This runs in "No plugin mode" and scaffolds block files into the current directory.
+
+### --target-dir
+
+Specify the output directory:
+
+```bash
+npx @wordpress/create-block@latest my-block --target-dir=custom-folder
+```
+
+### --title
+
+Set the display title for the block and plugin:
+
+```bash
+npx @wordpress/create-block@latest my-block --title="My Custom Block"
+```
+
+### --short-description
+
+Set the short description:
+
+```bash
+npx @wordpress/create-block@latest my-block --short-description="A block for custom content"
+```
+
+### --category
+
+Set the block category:
+
+```bash
+npx @wordpress/create-block@latest my-block --category=widgets
+```
+
+**Available categories:**
+- `text`
+- `media`
+- `design`
+- `widgets`
+- `theme`
+- `embed`
+
+### --wp-scripts
+
+Enable or disable integration with `@wordpress/scripts`:
+
+```bash
+# Enable (default)
+npx @wordpress/create-block@latest my-block --wp-scripts
+
+# Disable
+npx @wordpress/create-block@latest my-block --no-wp-scripts
+```
+
+### --wp-env
+
+Add `@wordpress/env` configuration to the generated plugin:
+
+```bash
+npx @wordpress/create-block@latest my-block --wp-env
+```
+
+This allows you to easily set up a local WordPress environment for testing:
+
+<Steps>
+
+<Step title="Generate block with wp-env">
+  ```bash
+  npx @wordpress/create-block@latest my-block --wp-env
+  cd my-block
+  ```
+</Step>
+
+<Step title="Start local environment">
+  ```bash
+  npm run wp-env start
+  ```
+</Step>
+
+<Step title="Access WordPress">
+  Open http://localhost:8888
+  - Username: `admin`
+  - Password: `password`
+</Step>
+
+</Steps>
+
+### --textdomain
+
+Set a custom text domain for internationalization:
+
+```bash
+npx @wordpress/create-block@latest my-block --textdomain=my-custom-domain
+```
+
+If not specified, the block's slug is used as the default text domain.
+
+### --version
+
+Display version information:
+
+```bash
+npx @wordpress/create-block@latest --version
+```
+
+### --help
+
+Display usage information:
+
+```bash
+npx @wordpress/create-block@latest --help
+```
+
+## Complete Options Reference
+
+```bash
+Options:
+  -V, --version                output the version number
+  -t, --template <name>        project template type name
+  --variant                    choose a block variant
+  --no-plugin                  scaffold block files only
+  --target-dir <directory>     output directory (defaults to slug)
+  --namespace <value>          internal namespace for the block
+  --title <value>              display title for the block
+  --short-description <value>  short description
+  --category <name>            category name for the block
+  --wp-scripts                 enable @wordpress/scripts integration
+  --no-wp-scripts              disable @wordpress/scripts integration
+  --wp-env                     enable @wordpress/env integration
+  --textdomain <value>         text domain for i18n
+  -h, --help                   output usage information
+```
+
+## Generated Project Structure
+
+When you run `create-block`, it generates this structure:
+
+```
+my-block/
+├── build/              # Compiled assets (generated)
+├── src/
+│   ├── block.json      # Block metadata
+│   ├── edit.js         # Editor component
+│   ├── editor.scss     # Editor styles
+│   ├── index.js        # Block registration
+│   ├── save.js         # Save component
+│   └── style.scss      # Front-end and editor styles
+├── .editorconfig       # Editor configuration
+├── .gitignore          # Git ignore rules
+├── my-block.php        # Main plugin file
+├── package.json        # npm dependencies and scripts
+└── readme.txt          # WordPress plugin readme
+```
+
+## Available Scripts in Generated Project
+
+The generated plugin includes these npm scripts:
+
+<AccordionGroup>
+
+<Accordion title="npm start">
+  Starts the build for development with watch mode.
+  
+  ```bash
+  npm start
+  ```
+  
+  Automatically rebuilds when you make changes to the code.
+</Accordion>
+
+<Accordion title="npm run build">
+  Builds the code for production.
+  
+  ```bash
+  npm run build
+  ```
+  
+  Generates optimized assets in the `build` folder.
+</Accordion>
+
+<Accordion title="npm run format">
+  Formats files using Prettier.
+  
+  ```bash
+  npm run format
+  ```
+</Accordion>
+
+<Accordion title="npm run lint:css">
+  Lints CSS files using Stylelint.
+  
+  ```bash
+  npm run lint:css
+  ```
+</Accordion>
+
+<Accordion title="npm run lint:js">
+  Lints JavaScript files using ESLint.
+  
+  ```bash
+  npm run lint:js
+  ```
+</Accordion>
+
+<Accordion title="npm run packages-update">
+  Updates WordPress packages to the latest versions.
+  
+  ```bash
+  npm run packages-update
+  ```
+</Accordion>
+
+<Accordion title="npm run plugin-zip">
+  Creates a ZIP file of the plugin.
+  
+  ```bash
+  npm run plugin-zip
+  ```
+  
+  Useful for distributing your plugin.
+</Accordion>
+
+</AccordionGroup>
+
+<Note>
+  You don't need to configure webpack, Babel, or ESLint yourself. They're preconfigured and hidden so you can focus on coding.
+</Note>
+
+## Examples
+
+### Create a Block with Custom Namespace
+
+```bash
+npx @wordpress/create-block@latest testimonial --namespace=acme
+```
+
+This creates:
+- Block name: `acme/testimonial`
+- Plugin folder: `testimonial`
+
+### Create a Dynamic Block
+
+```bash
+npx @wordpress/create-block@latest latest-posts --variant=dynamic
+```
+
+Generates a dynamic block that renders on the server, useful for displaying database-driven content.
+
+### Create Multiple Blocks (No Plugin Mode)
+
+Add a new block to an existing plugin:
+
+```bash
+cd my-existing-plugin/src/blocks
+npx @wordpress/create-block@latest new-block --no-plugin
+```
+
+### Create Block with Local Development Environment
+
+```bash
+npx @wordpress/create-block@latest my-block --wp-env
+cd my-block
+npm run wp-env start
+```
+
+Access your block at http://localhost:8888
+
+### Create Block from Custom Template
+
+```bash
+npx @wordpress/create-block@latest my-block --template=@company/block-template
+```
+
+## Block Development Workflow
+
+<Steps>
+
+<Step title="Generate the block">
+  ```bash
+  npx @wordpress/create-block@latest feature-card
+  cd feature-card
+  ```
+</Step>
+
+<Step title="Start development server">
+  ```bash
+  npm start
+  ```
+  
+  Watches for file changes and rebuilds automatically.
+</Step>
+
+<Step title="Edit block code">
+  Modify files in the `src` directory:
+  - `block.json` - block metadata
+  - `edit.js` - editor interface
+  - `save.js` - front-end output
+  - `style.scss` - front-end and editor styles
+  - `editor.scss` - editor-only styles
+</Step>
+
+<Step title="Test in WordPress">
+  1. Copy the plugin folder to `wp-content/plugins/`
+  2. Activate the plugin in WordPress admin
+  3. Add the block to a post or page
+</Step>
+
+<Step title="Build for production">
+  ```bash
+  npm run build
+  ```
+  
+  Creates optimized production assets.
+</Step>
+
+<Step title="Create distribution package">
+  ```bash
+  npm run plugin-zip
+  ```
+  
+  Generates a ZIP file ready for distribution.
+</Step>
+
+</Steps>
+
+## Understanding block.json
+
+The `block.json` file contains your block's metadata:
+
+```json src/block.json
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "create-block/my-block",
+  "version": "0.1.0",
+  "title": "My Block",
+  "category": "widgets",
+  "icon": "smiley",
+  "description": "Example block scaffolded with Create Block tool.",
+  "supports": {
+    "html": false
+  },
+  "textdomain": "my-block",
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css"
+}
+```
+
+**Key fields:**
+
+- `name` - unique block identifier (`namespace/slug`)
+- `title` - display name in the editor
+- `category` - where the block appears in the inserter
+- `icon` - Dashicon or custom SVG
+- `editorScript` - JavaScript for the editor
+- `editorStyle` - CSS for the editor only
+- `style` - CSS for both editor and front-end
+
+## Block Templates
+
+Create Block supports custom templates for different use cases.
+
+### Built-in Templates
+
+<CodeGroup>
+
+```bash Terminal (Static Block - Default)
+npx @wordpress/create-block@latest my-block --template=static
+```
+
+```bash Terminal (ES5 Block)
+npx @wordpress/create-block@latest my-block --template=es5
+```
+
+```bash Terminal (Dynamic Block)
+npx @wordpress/create-block@latest my-block --variant=dynamic
+```
+
+</CodeGroup>
+
+### External Templates
+
+You can use external npm packages as templates:
+
+```bash
+npx @wordpress/create-block@latest my-block --template=@my-org/custom-template
+```
+
+Or local templates:
+
+```bash
+npx @wordpress/create-block@latest my-block --template=./templates/custom
+```
+
+## Tips and Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Use semantic block names">
+  Choose descriptive, semantic names:
+  
+  **Good:**
+  - `testimonial`
+  - `pricing-table`
+  - `feature-grid`
+  
+  **Avoid:**
+  - `block1`
+  - `custom-block`
+  - `my-block`
+</Accordion>
+
+<Accordion title="Keep namespace consistent">
+  Use your company or project name as the namespace:
+  
+  ```bash
+  npx @wordpress/create-block@latest testimonial --namespace=acme
+  ```
+  
+  All your blocks should use the same namespace (e.g., `acme/testimonial`, `acme/pricing-table`).
+</Accordion>
+
+<Accordion title="Pair blocks with plugins, not themes">
+  Blocks should be part of plugins, not themes. This ensures blocks continue working when users change themes.
+</Accordion>
+
+<Accordion title="Use wp-env for local testing">
+  Add `--wp-env` flag to quickly test your block:
+  
+  ```bash
+  npx @wordpress/create-block@latest my-block --wp-env
+  cd my-block
+  npm run wp-env start
+  ```
+</Accordion>
+
+<Accordion title="Keep dependencies updated">
+  Regularly update WordPress packages:
+  
+  ```bash
+  npm run packages-update
+  npm install
+  npm run build
+  ```
+</Accordion>
+
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+
+<Accordion title="Node version error">
+  **Error:** `create-block requires Node.js 20.10.0 or higher`
+  
+  **Solution:** Update Node.js:
+  ```bash
+  # Using nvm
+  nvm install 20
+  nvm use 20
+  
+  # Verify version
+  node --version
+  ```
+</Accordion>
+
+<Accordion title="Block not appearing in editor">
+  **Checklist:**
+  1. Is the plugin activated?
+  2. Did you run `npm run build` or `npm start`?
+  3. Are there errors in the browser console?
+  4. Is the block name in `block.json` unique?
+</Accordion>
+
+<Accordion title="Build errors">
+  **Solution:** Clean install dependencies:
+  ```bash
+  rm -rf node_modules package-lock.json
+  npm install
+  npm run build
+  ```
+</Accordion>
+
+<Accordion title="Styles not loading">
+  **Check:**
+  1. Are style imports in `index.js`?
+  2. Did the build complete successfully?
+  3. Are the CSS files in the `build` folder?
+  4. Is the plugin enqueuing assets correctly?
+</Accordion>
+
+</AccordionGroup>
+
+## Next Steps
+
+After creating your block:
+
+<CardGroup cols={2}>
+
+<Card title="Block Editor Handbook" icon="book" href="https://developer.wordpress.org/block-editor/">
+  Learn about block development concepts and APIs
+</Card>
+
+<Card title="Block API Reference" icon="code" href="https://developer.wordpress.org/block-editor/reference-guides/block-api/">
+  Explore block registration and block.json options
+</Card>
+
+<Card title="@wordpress/scripts" icon="terminal" href="/packages/scripts">
+  Learn about available build commands and options
+</Card>
+
+<Card title="@wordpress/env" icon="server" href="/packages/env">
+  Set up a local WordPress environment for testing
+</Card>
+
+</CardGroup>
+
+## Package Information
+
+- **Version:** 4.83.0
+- **Node.js:** >= 20.10.0
+- **npm:** >= 10.2.3
+- **License:** GPL-2.0-or-later
+- **Binary:** `wp-create-block`
+
+## Related Packages
+
+- [@wordpress/scripts](/packages/scripts) - Build and test scripts
+- [@wordpress/env](/packages/env) - Local WordPress environment
+- [@wordpress/block-editor](/packages/block-editor) - Block editor components

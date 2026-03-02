@@ -1,0 +1,815 @@
+---
+title: '@wordpress/blocks'
+description: Block API for WordPress - register, parse, and serialize blocks
+---
+
+# @wordpress/blocks
+
+The `@wordpress/blocks` package provides the foundational Block API for WordPress. It handles block registration, parsing, serialization, and transformations.
+
+## Installation
+
+```bash
+npm install @wordpress/blocks --save
+```
+
+<Info>
+  **Current Version**: 15.13.0
+  
+  This package assumes an **ES2015+** environment. Include the polyfill from [@wordpress/babel-preset-default](https://github.com/WordPress/gutenberg/tree/HEAD/packages/babel-preset-default#polyfill) if needed.
+</Info>
+
+## What are Blocks?
+
+Blocks are the abstract units of markup that compose the content or layout of a webpage. They combine concepts previously achieved with shortcodes, custom HTML, and embed discovery into a single consistent API.
+
+## Core Concepts
+
+### Block Registration
+
+Register a new block type with `registerBlockType`:
+
+```javascript
+import { registerBlockType } from '@wordpress/blocks';
+import { __ } from '@wordpress/i18n';
+
+registerBlockType( 'namespace/block-name', {
+  title: __( 'My First Block' ),
+  edit: () => <div>{ __( 'Hello from the editor!' ) }</div>,
+  save: () => <div>Hello from the saved content!</div>,
+} );
+```
+
+<ParamField path="blockNameOrMetadata" type="string | Object" required>
+  Block type name (e.g., 'namespace/block-name') or block metadata object
+</ParamField>
+
+<ParamField path="settings" type="Object" required>
+  Block settings object with the following properties:
+  
+  - `title`: Human-readable block name
+  - `edit`: React component for the editor
+  - `save`: Function returning the saved output
+  - `attributes`: Block attribute schema
+  - `category`: Block category for the inserter
+</ParamField>
+
+<ResponseField name="return" type="WPBlockType | undefined">
+  The registered block if successful, otherwise `undefined`
+</ResponseField>
+
+### Block Parsing
+
+Parse post content into blocks:
+
+```javascript
+import { parse } from '@wordpress/blocks';
+
+const blocks = parse( '<!-- wp:paragraph --><p>Hello World</p><!-- /wp:paragraph -->' );
+console.log( blocks );
+// [
+//   {
+//     name: 'core/paragraph',
+//     attributes: { content: 'Hello World' },
+//     innerBlocks: []
+//   }
+// ]
+```
+
+<ParamField path="content" type="string" required>
+  The post content to parse (HTML with block comments)
+</ParamField>
+
+<ParamField path="options" type="ParseOptions">
+  Extra options for handling block parsing
+</ParamField>
+
+<ResponseField name="return" type="Array">
+  Array of block objects with `name`, `attributes`, and `innerBlocks`
+</ResponseField>
+
+### Block Serialization
+
+Serialize blocks back to post content:
+
+```javascript
+import { serialize, createBlock } from '@wordpress/blocks';
+
+const block = createBlock( 'core/paragraph', {
+  content: 'Hello World'
+} );
+
+const postContent = serialize( [ block ] );
+// "<!-- wp:paragraph -->\n<p>Hello World</p>\n<!-- /wp:paragraph -->"
+```
+
+<ParamField path="blocks" type="Array" required>
+  Block or array of blocks to serialize
+</ParamField>
+
+<ParamField path="options" type="WPBlockSerializationOptions">
+  Serialization options
+</ParamField>
+
+<ResponseField name="return" type="string">
+  The serialized post content
+</ResponseField>
+
+## API Reference
+
+### Block Creation
+
+<CodeGroup>
+```javascript createBlock
+import { createBlock } from '@wordpress/blocks';
+
+const block = createBlock(
+  'core/paragraph',
+  { content: 'Hello World' },
+  [] // innerBlocks
+);
+```
+
+```javascript cloneBlock
+import { cloneBlock } from '@wordpress/blocks';
+
+const clonedBlock = cloneBlock(
+  block,
+  { content: 'Modified content' }, // mergeAttributes
+  [] // newInnerBlocks
+);
+```
+</CodeGroup>
+
+#### createBlock
+
+Returns a block object given its type and attributes.
+
+<ParamField path="name" type="string" required>
+  Block name (e.g., 'core/paragraph')
+</ParamField>
+
+<ParamField path="attributes" type="Object">
+  Block attributes
+</ParamField>
+
+<ParamField path="innerBlocks" type="Array">
+  Nested blocks
+</ParamField>
+
+<ResponseField name="return" type="Object">
+  Block object with `name`, `attributes`, `innerBlocks`, and `clientId`
+</ResponseField>
+
+#### cloneBlock
+
+Given a block object, returns a copy with optional merged attributes and/or replaced inner blocks.
+
+<ParamField path="block" type="Object" required>
+  Block instance to clone
+</ParamField>
+
+<ParamField path="mergeAttributes" type="Object">
+  Attributes to merge with the cloned block
+</ParamField>
+
+<ParamField path="newInnerBlocks" type="Array">
+  Inner blocks to replace in the clone
+</ParamField>
+
+<ResponseField name="return" type="Object">
+  A cloned block with merged attributes
+</ResponseField>
+
+### Block Types
+
+#### registerBlockType
+
+Registers a new block provided a unique name and an object defining its behavior.
+
+```javascript
+import { registerBlockType } from '@wordpress/blocks';
+
+registerBlockType( 'namespace/block-name', {
+  title: 'My First Block',
+  icon: 'smiley',
+  category: 'text',
+  attributes: {
+    content: {
+      type: 'string',
+      source: 'html',
+      selector: 'p',
+    }
+  },
+  edit: ( { attributes, setAttributes } ) => {
+    return (
+      <p>
+        { attributes.content }
+      </p>
+    );
+  },
+  save: ( { attributes } ) => {
+    return <p>{ attributes.content }</p>;
+  },
+} );
+```
+
+<Info>
+  See the [Create a Block tutorial](https://developer.wordpress.org/block-editor/getting-started/create-block/) for comprehensive block registration guidance.
+</Info>
+
+#### getBlockType
+
+Returns a registered block type.
+
+```javascript
+import { getBlockType } from '@wordpress/blocks';
+
+const blockType = getBlockType( 'core/paragraph' );
+console.log( blockType.title ); // "Paragraph"
+```
+
+<ParamField path="name" type="string" required>
+  Block name
+</ParamField>
+
+<ResponseField name="return" type="Object | null">
+  Block type object or null if not found
+</ResponseField>
+
+#### getBlockTypes
+
+Returns all registered blocks.
+
+```javascript
+import { getBlockTypes } from '@wordpress/blocks';
+
+const allBlocks = getBlockTypes();
+console.log( allBlocks.length );
+```
+
+<ResponseField name="return" type="Array">
+  Array of all registered block settings
+</ResponseField>
+
+#### unregisterBlockType
+
+Unregisters a block.
+
+```javascript
+import { unregisterBlockType } from '@wordpress/blocks';
+
+unregisterBlockType( 'my-plugin/custom-block' );
+```
+
+<ParamField path="name" type="string" required>
+  Block name
+</ParamField>
+
+<ResponseField name="return" type="WPBlockType | undefined">
+  The previous block value if successfully unregistered
+</ResponseField>
+
+### Block Variations
+
+#### registerBlockVariation
+
+Registers a new block variation for a given block type.
+
+```javascript
+import { registerBlockVariation } from '@wordpress/blocks';
+
+registerBlockVariation( 'core/embed', {
+  name: 'youtube',
+  title: 'YouTube',
+  attributes: { providerNameSlug: 'youtube' },
+} );
+```
+
+<ParamField path="blockName" type="string" required>
+  Name of the block (e.g., 'core/columns')
+</ParamField>
+
+<ParamField path="variation" type="WPBlockVariation" required>
+  Object describing the block variation:
+  - `name`: Unique variation name
+  - `title`: Human-readable variation title
+  - `attributes`: Default attributes for the variation
+  - `icon`: Optional icon
+  - `scope`: Where the variation appears (inserter, block, transform)
+</ParamField>
+
+<Info>
+  See the [Block Variations documentation](https://developer.wordpress.org/block-editor/reference-guides/block-api/block-variations/) for more details.
+</Info>
+
+#### unregisterBlockVariation
+
+Unregisters a block variation defined for a given block type.
+
+```javascript
+import { unregisterBlockVariation } from '@wordpress/blocks';
+
+unregisterBlockVariation( 'core/embed', 'youtube' );
+```
+
+<ParamField path="blockName" type="string" required>
+  Name of the block
+</ParamField>
+
+<ParamField path="variationName" type="string" required>
+  Name of the variation to unregister
+</ParamField>
+
+### Block Styles
+
+#### registerBlockStyle
+
+Registers a new block style for given block types.
+
+```javascript
+import { registerBlockStyle } from '@wordpress/blocks';
+
+registerBlockStyle( 'core/quote', {
+  name: 'fancy-quote',
+  label: 'Fancy Quote',
+} );
+```
+
+<ParamField path="blockNames" type="string | Array" required>
+  Name of block(s) or array of block names (e.g., 'core/quote' or ['core/group', 'core/columns'])
+</ParamField>
+
+<ParamField path="styleVariation" type="Object" required>
+  Style variation object:
+  - `name`: CSS class name applied to the block
+  - `label`: Human-readable label shown to users
+</ParamField>
+
+<Info>
+  See the [Block Styles documentation](https://developer.wordpress.org/block-editor/reference-guides/block-api/block-styles/) for styling guidance.
+</Info>
+
+#### unregisterBlockStyle
+
+Unregisters a block style for a given block.
+
+```javascript
+import { unregisterBlockStyle } from '@wordpress/blocks';
+
+unregisterBlockStyle( 'core/quote', 'plain' );
+```
+
+<ParamField path="blockName" type="string" required>
+  Name of the block
+</ParamField>
+
+<ParamField path="styleVariationName" type="string" required>
+  Name of the style to unregister
+</ParamField>
+
+### Block Categories
+
+#### setCategories
+
+Sets the block categories.
+
+```javascript
+import { setCategories } from '@wordpress/blocks';
+import { store as blocksStore } from '@wordpress/blocks';
+import { useSelect } from '@wordpress/data';
+
+const blockCategories = useSelect(
+  ( select ) => select( blocksStore ).getCategories(),
+  []
+);
+
+setCategories( [
+  ...blockCategories,
+  { title: 'Custom Category', slug: 'custom-category' },
+] );
+```
+
+<ParamField path="categories" type="WPBlockCategory[]" required>
+  Array of category objects with `title` and `slug` properties
+</ParamField>
+
+#### updateCategory
+
+Updates a category.
+
+```javascript
+import { updateCategory } from '@wordpress/blocks';
+
+updateCategory( 'text', { title: 'Written Word' } );
+```
+
+<ParamField path="slug" type="string" required>
+  Block category slug
+</ParamField>
+
+<ParamField path="category" type="WPBlockCategory" required>
+  Object with properties to update (e.g., `title`)
+</ParamField>
+
+### Block Collections
+
+#### registerBlockCollection
+
+Registers a new block collection to group blocks in the same namespace.
+
+```javascript
+import { registerBlockCollection, registerBlockType } from '@wordpress/blocks';
+
+registerBlockCollection( 'my-plugin', {
+  title: 'My Plugin Blocks',
+  icon: 'smiley',
+} );
+
+registerBlockType( 'my-plugin/custom-block', {
+  title: 'Custom Block',
+  // ... other settings
+} );
+```
+
+<ParamField path="namespace" type="string" required>
+  The namespace to group blocks (corresponds to block namespace)
+</ParamField>
+
+<ParamField path="settings" type="Object" required>
+  Collection settings:
+  - `title`: Display title in block inserter
+  - `icon`: Optional icon to display
+</ParamField>
+
+### Block Transformations
+
+#### switchToBlockType
+
+Switch one or more blocks into blocks of a new block type.
+
+```javascript
+import { switchToBlockType } from '@wordpress/blocks';
+
+const newBlocks = switchToBlockType( blocks, 'core/group' );
+```
+
+<ParamField path="blocks" type="Array | Object" required>
+  Block(s) to transform
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  Target block name
+</ParamField>
+
+<ResponseField name="return" type="Array | null">
+  Array of transformed blocks or null if transformation failed
+</ResponseField>
+
+#### getBlockTransforms
+
+Returns normal block transforms for a given direction.
+
+```javascript
+import { getBlockTransforms } from '@wordpress/blocks';
+
+const transforms = getBlockTransforms( 'to', 'core/paragraph' );
+```
+
+<ParamField path="direction" type="string" required>
+  Transform direction: 'to' or 'from'
+</ParamField>
+
+<ParamField path="blockTypeOrName" type="string | Object">
+  Optional block type or name to filter transforms
+</ParamField>
+
+<ResponseField name="return" type="Array">
+  Array of block transforms for the direction
+</ResponseField>
+
+#### getPossibleBlockTransformations
+
+Returns block types that the given blocks can be transformed into.
+
+```javascript
+import { getPossibleBlockTransformations } from '@wordpress/blocks';
+
+const possibleTypes = getPossibleBlockTransformations( blocks );
+```
+
+<ParamField path="blocks" type="Array" required>
+  Array of blocks
+</ParamField>
+
+<ResponseField name="return" type="Array">
+  Block types that the blocks can be transformed to
+</ResponseField>
+
+### Block Validation
+
+#### validateBlock
+
+Returns validation results for a parsed block.
+
+```javascript
+import { validateBlock } from '@wordpress/blocks';
+
+const [ isValid, issues ] = validateBlock( block );
+if ( ! isValid ) {
+  console.error( 'Validation issues:', issues );
+}
+```
+
+<ParamField path="block" type="WPBlock" required>
+  Block object to validate
+</ParamField>
+
+<ParamField path="blockTypeOrName" type="WPBlockType | string">
+  Block type or name (inferred from block if not provided)
+</ParamField>
+
+<ResponseField name="return" type="[boolean, Array<LoggerItem>]">
+  Tuple with validation status and array of validation issues
+</ResponseField>
+
+### Block Support
+
+#### hasBlockSupport
+
+Returns true if the block defines support for a feature.
+
+```javascript
+import { hasBlockSupport } from '@wordpress/blocks';
+
+const supportsAlign = hasBlockSupport( 'core/paragraph', 'align', false );
+```
+
+<ParamField path="nameOrType" type="string | Object" required>
+  Block name or type object
+</ParamField>
+
+<ParamField path="feature" type="string" required>
+  Feature to test (e.g., 'align', 'html', 'anchor')
+</ParamField>
+
+<ParamField path="defaultSupports" type="boolean">
+  Default value if feature support is not explicitly defined
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Whether the block supports the feature
+</ResponseField>
+
+#### getBlockSupport
+
+Returns the block support value for a feature.
+
+```javascript
+import { getBlockSupport } from '@wordpress/blocks';
+
+const alignSupport = getBlockSupport( 'core/paragraph', 'align' );
+```
+
+<ParamField path="nameOrType" type="string | Object" required>
+  Block name or type object
+</ParamField>
+
+<ParamField path="feature" type="string" required>
+  Feature to retrieve
+</ParamField>
+
+<ParamField path="defaultSupports" type="*">
+  Default value to return if not explicitly defined
+</ParamField>
+
+<ResponseField name="return" type="* | null">
+  Block support value
+</ResponseField>
+
+### Block Bindings
+
+#### registerBlockBindingsSource
+
+Registers a new block bindings source.
+
+```javascript
+import { registerBlockBindingsSource } from '@wordpress/blocks';
+import { _x } from '@wordpress/i18n';
+
+registerBlockBindingsSource( {
+  name: 'plugin/my-custom-source',
+  label: _x( 'My Custom Source', 'block bindings source' ),
+  usesContext: [ 'postType' ],
+  getValues: ( { bindings, context } ) => {
+    // Return values for bound attributes
+  },
+  setValues: ( { bindings, context, values } ) => {
+    // Update values
+  },
+  canUserEditValue: () => true,
+} );
+```
+
+<ParamField path="source" type="WPBlockBindingsSource" required>
+  Block bindings source configuration:
+  - `name`: Unique source identifier
+  - `label`: Human-readable label
+  - `usesContext`: Optional array of context values needed
+  - `getValues`: Function to retrieve bound values
+  - `setValues`: Optional function to update values
+  - `canUserEditValue`: Optional function to check edit permissions
+</ParamField>
+
+<Info>
+  Introduced in WordPress 6.7.0
+</Info>
+
+#### getBlockBindingsSource
+
+Returns a registered block bindings source by name.
+
+```javascript
+import { getBlockBindingsSource } from '@wordpress/blocks';
+
+const source = getBlockBindingsSource( 'core/post-meta' );
+```
+
+<ParamField path="name" type="string" required>
+  Block bindings source name
+</ParamField>
+
+<ResponseField name="return" type="Object | null">
+  Block bindings source or null
+</ResponseField>
+
+#### unregisterBlockBindingsSource
+
+Unregisters a block bindings source.
+
+```javascript
+import { unregisterBlockBindingsSource } from '@wordpress/blocks';
+
+unregisterBlockBindingsSource( 'plugin/my-custom-source' );
+```
+
+<ParamField path="name" type="string" required>
+  Block bindings source name to unregister
+</ParamField>
+
+### Utility Functions
+
+#### getBlockDefaultClassName
+
+Returns the block's default classname from its name.
+
+```javascript
+import { getBlockDefaultClassName } from '@wordpress/blocks';
+
+const className = getBlockDefaultClassName( 'core/paragraph' );
+// "wp-block-paragraph"
+```
+
+#### pasteHandler
+
+Converts HTML string to blocks, stripping everything else.
+
+```javascript
+import { pasteHandler } from '@wordpress/blocks';
+
+const blocks = pasteHandler( {
+  HTML: '<p>Pasted content</p>',
+  mode: 'BLOCKS',
+} );
+```
+
+<ParamField path="options.HTML" type="string">
+  The HTML to convert
+</ParamField>
+
+<ParamField path="options.plainText" type="string">
+  Plain text version
+</ParamField>
+
+<ParamField path="options.mode" type="string">
+  Handle content as blocks or inline:
+  - `AUTO`: Decide based on content
+  - `INLINE`: Always handle as inline, return string
+  - `BLOCKS`: Always handle as blocks, return array
+</ParamField>
+
+<ResponseField name="return" type="Array | string">
+  List of blocks or string depending on mode
+</ResponseField>
+
+### Default Blocks
+
+#### setDefaultBlockName
+
+Assigns the default block name.
+
+```javascript
+import { setDefaultBlockName } from '@wordpress/blocks';
+
+setDefaultBlockName( 'core/paragraph' );
+```
+
+<ParamField path="name" type="string" required>
+  Block name to set as default
+</ParamField>
+
+#### getDefaultBlockName
+
+Retrieves the default block name.
+
+```javascript
+import { getDefaultBlockName } from '@wordpress/blocks';
+
+const defaultBlock = getDefaultBlockName();
+// "core/paragraph"
+```
+
+<ResponseField name="return" type="string | null">
+  Default block name
+</ResponseField>
+
+#### setFreeformContentHandlerName
+
+Assigns the block name for handling non-block content.
+
+```javascript
+import { setFreeformContentHandlerName } from '@wordpress/blocks';
+
+setFreeformContentHandlerName( 'core/html' );
+```
+
+<ParamField path="blockName" type="string" required>
+  Block name for freeform content
+</ParamField>
+
+## Store
+
+The blocks package includes a data store:
+
+```javascript
+import { store as blocksStore } from '@wordpress/blocks';
+import { useSelect } from '@wordpress/data';
+
+function MyComponent() {
+  const blockTypes = useSelect( ( select ) => {
+    return select( blocksStore ).getBlockTypes();
+  }, [] );
+  
+  return <div>{ blockTypes.length } blocks registered</div>;
+}
+```
+
+<ResponseField name="store" type="Object">
+  Store definition for the blocks namespace. See [@wordpress/data](https://github.com/WordPress/gutenberg/blob/HEAD/packages/data/README.md#createReduxStore) for details.
+</ResponseField>
+
+## TypeScript
+
+Type definitions are available:
+
+```typescript
+import type { WPBlockType, WPBlock, BlockInstance } from '@wordpress/blocks';
+
+const block: BlockInstance = createBlock( 'core/paragraph', {
+  content: 'Hello',
+} );
+```
+
+## Dependencies
+
+The package depends on:
+
+- `@wordpress/data` - State management
+- `@wordpress/element` - React abstraction
+- `@wordpress/i18n` - Internationalization
+- `@wordpress/hooks` - Plugin API
+- `@wordpress/rich-text` - Rich text formatting
+- `@wordpress/dom` - DOM utilities
+- And several utility packages
+
+See [package.json](https://github.com/WordPress/gutenberg/blob/HEAD/packages/blocks/package.json) for the complete dependency list.
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="Create a Block Tutorial" icon="graduation-cap" href="https://developer.wordpress.org/block-editor/getting-started/create-block/">
+    Learn how to create your first block
+  </Card>
+  
+  <Card title="Block API Reference" icon="book" href="https://developer.wordpress.org/block-editor/reference-guides/block-api/">
+    Complete block API documentation
+  </Card>
+  
+  <Card title="GitHub Repository" icon="github" href="https://github.com/WordPress/gutenberg/tree/HEAD/packages/blocks">
+    Source code and issue tracker
+  </Card>
+  
+  <Card title="What Are Blocks?" icon="cube" href="https://make.wordpress.org/design/2017/01/25/what-are-little-blocks-made-of/">
+    Design principles behind blocks
+  </Card>
+</CardGroup>

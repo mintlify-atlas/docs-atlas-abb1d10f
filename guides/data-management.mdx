@@ -1,0 +1,516 @@
+---
+title: Managing Data with @wordpress/data
+description: Learn how to use the @wordpress/data package to manage application state in WordPress Block Editor development.
+---
+
+The `@wordpress/data` package is WordPress's centralized state management system, built on Redux principles. It provides a powerful way to manage application state, fetch data from REST APIs, and share data between components.
+
+## Overview
+
+WordPress's data module serves as a hub to manage application state for both plugins and WordPress itself. It provides tools to manage data within and between distinct modules, scalable from simple plugins to complex single-page applications.
+
+<Note>
+The data module is built upon Redux but includes unique features like resolvers, normalized selectors, and built-in async handling that distinguish it from standard Redux implementations.
+</Note>
+
+## Installation
+
+Install the package using npm:
+
+```bash
+npm install @wordpress/data --save
+```
+
+## Core Concepts
+
+### Stores
+
+A store is a centralized container for your application's state. WordPress core provides several built-in stores:
+
+- `core` - Core data entities (posts, pages, users)
+- `core/editor` - Editor-specific state
+- `core/block-editor` - Block editor state
+- `core/notices` - User notifications
+
+### Selectors
+
+Selectors are functions that retrieve and derive state values. They're your primary mechanism for reading data:
+
+```js
+import { select } from '@wordpress/data';
+import { store as coreDataStore } from '@wordpress/core-data';
+
+// Get a specific post
+const post = select( coreDataStore ).getEntityRecord( 'postType', 'post', 123 );
+
+// Get all published pages
+const pages = select( coreDataStore ).getEntityRecords( 'postType', 'page', {
+  status: 'publish'
+});
+```
+
+### Actions
+
+Actions are functions that modify state. Dispatching actions is the primary mechanism for making changes:
+
+```js
+import { dispatch } from '@wordpress/data';
+import { store as coreDataStore } from '@wordpress/core-data';
+
+// Edit an entity record
+dispatch( coreDataStore ).editEntityRecord( 'postType', 'page', 42, {
+  title: 'Updated Title'
+});
+
+// Save the changes
+await dispatch( coreDataStore ).saveEditedEntityRecord( 'postType', 'page', 42 );
+```
+
+### Resolvers
+
+Resolvers are side-effects for selectors. When a selector is called for the first time, its resolver fetches the required data:
+
+```js
+// First call triggers resolver to fetch data
+const pages = select( coreDataStore ).getEntityRecords( 'postType', 'page' );
+// Returns null initially
+
+// Subsequent calls return cached data once resolver completes
+const pages = select( coreDataStore ).getEntityRecords( 'postType', 'page' );
+// Returns the actual pages array
+```
+
+## Using Data in React Components
+
+### useSelect Hook
+
+The `useSelect` hook retrieves data from stores and automatically re-renders your component when the data changes:
+
+<CodeGroup>
+```jsx Basic Usage
+import { useSelect } from '@wordpress/data';
+import { store as coreDataStore } from '@wordpress/core-data';
+
+function PagesList() {
+  const pages = useSelect( ( select ) => {
+    return select( coreDataStore ).getEntityRecords( 'postType', 'page' );
+  }, [] );
+
+  if ( ! pages ) {
+    return <p>Loading...</p>;
+  }
+
+  return (
+    <ul>
+      { pages.map( ( page ) => (
+        <li key={ page.id }>{ page.title.rendered }</li>
+      ) ) }
+    </ul>
+  );
+}
+```
+
+```jsx With Dependencies
+import { useState } from 'react';
+import { useSelect } from '@wordpress/data';
+import { store as coreDataStore } from '@wordpress/core-data';
+
+function SearchablePages() {
+  const [ searchTerm, setSearchTerm ] = useState( '' );
+
+  const pages = useSelect(
+    ( select ) => {
+      const query = searchTerm ? { search: searchTerm } : {};
+      return select( coreDataStore ).getEntityRecords( 'postType', 'page', query );
+    },
+    [ searchTerm ]
+  );
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={ searchTerm }
+        onChange={ ( e ) => setSearchTerm( e.target.value ) }
+        placeholder="Search pages..."
+      />
+      { pages && (
+        <ul>
+          { pages.map( ( page ) => (
+            <li key={ page.id }>{ page.title.rendered }</li>
+          ) ) }
+        </ul>
+      ) }
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+<Warning>
+Always include dependencies in the second argument of `useSelect`. If your selector uses external variables (like `searchTerm`), add them to the dependency array to ensure the selector re-runs when they change.
+</Warning>
+
+### useDispatch Hook
+
+The `useDispatch` hook provides access to action creators:
+
+```jsx
+import { useDispatch } from '@wordpress/data';
+import { store as coreDataStore } from '@wordpress/core-data';
+
+function EditPageForm( { pageId } ) {
+  const { editEntityRecord, saveEditedEntityRecord } = useDispatch( coreDataStore );
+  const [ title, setTitle ] = useState( '' );
+
+  const handleSave = async () => {
+    editEntityRecord( 'postType', 'page', pageId, { title } );
+    await saveEditedEntityRecord( 'postType', 'page', pageId );
+  };
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={ title }
+        onChange={ ( e ) => setTitle( e.target.value ) }
+      />
+      <button onClick={ handleSave }>Save</button>
+    </div>
+  );
+}
+```
+
+### Combining useSelect and useDispatch
+
+For complex components, combine both hooks:
+
+```jsx
+import { useSelect, useDispatch } from '@wordpress/data';
+import { store as coreDataStore } from '@wordpress/core-data';
+
+function PageEditor( { pageId } ) {
+  // Fetch page data
+  const { page, isSaving } = useSelect(
+    ( select ) => {
+      const { getEntityRecord, isSavingEntityRecord } = select( coreDataStore );
+      return {
+        page: getEntityRecord( 'postType', 'page', pageId ),
+        isSaving: isSavingEntityRecord( 'postType', 'page', pageId ),
+      };
+    },
+    [ pageId ]
+  );
+
+  // Get actions
+  const { editEntityRecord, saveEditedEntityRecord } = useDispatch( coreDataStore );
+
+  const handleChange = ( field, value ) => {
+    editEntityRecord( 'postType', 'page', pageId, { [ field ]: value } );
+  };
+
+  const handleSave = () => {
+    saveEditedEntityRecord( 'postType', 'page', pageId );
+  };
+
+  if ( ! page ) {
+    return <p>Loading...</p>;
+  }
+
+  return (
+    <div>
+      <input
+        value={ page.title.rendered }
+        onChange={ ( e ) => handleChange( 'title', e.target.value ) }
+        disabled={ isSaving }
+      />
+      <button onClick={ handleSave } disabled={ isSaving }>
+        { isSaving ? 'Saving...' : 'Save' }
+      </button>
+    </div>
+  );
+}
+```
+
+## Checking Resolution Status
+
+Use resolution selectors to track async operations:
+
+<Tabs>
+  <Tab title="hasFinishedResolution">
+    ```jsx
+    import { useSelect } from '@wordpress/data';
+    import { store as coreDataStore } from '@wordpress/core-data';
+
+    function PagesList() {
+      const { pages, hasResolved } = useSelect( ( select ) => {
+        const selectorArgs = [ 'postType', 'page', {} ];
+        return {
+          pages: select( coreDataStore ).getEntityRecords( ...selectorArgs ),
+          hasResolved: select( coreDataStore ).hasFinishedResolution(
+            'getEntityRecords',
+            selectorArgs
+          ),
+        };
+      }, [] );
+
+      if ( ! hasResolved ) {
+        return <p>Loading...</p>;
+      }
+
+      if ( ! pages?.length ) {
+        return <p>No pages found.</p>;
+      }
+
+      return (
+        <ul>
+          { pages.map( ( page ) => (
+            <li key={ page.id }>{ page.title.rendered }</li>
+          ) ) }
+        </ul>
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="isResolving">
+    ```jsx
+    function PagesWithSpinner() {
+      const { pages, isResolving } = useSelect( ( select ) => {
+        const selectorArgs = [ 'postType', 'page', {} ];
+        return {
+          pages: select( coreDataStore ).getEntityRecords( ...selectorArgs ),
+          isResolving: select( coreDataStore ).isResolving(
+            'getEntityRecords',
+            selectorArgs
+          ),
+        };
+      }, [] );
+
+      return (
+        <div>
+          { isResolving && <Spinner /> }
+          { pages && (
+            <ul>
+              { pages.map( ( page ) => (
+                <li key={ page.id }>{ page.title.rendered }</li>
+              ) ) }
+            </ul>
+          ) }
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+**Critical:** Always pass identical arguments to both the selector and resolution check functions. Store them in a variable to avoid typos:
+
+```js
+const selectorArgs = [ 'postType', 'page', query ];
+const pages = select( coreDataStore ).getEntityRecords( ...selectorArgs );
+const hasResolved = select( coreDataStore ).hasFinishedResolution(
+  'getEntityRecords',
+  selectorArgs
+);
+```
+</Note>
+
+## Creating Custom Stores
+
+Create your own store for custom data:
+
+```js
+import { createReduxStore, register } from '@wordpress/data';
+
+const DEFAULT_STATE = {
+  items: [],
+  selectedItem: null,
+};
+
+const actions = {
+  setItems( items ) {
+    return {
+      type: 'SET_ITEMS',
+      items,
+    };
+  },
+  selectItem( itemId ) {
+    return {
+      type: 'SELECT_ITEM',
+      itemId,
+    };
+  },
+};
+
+const selectors = {
+  getItems( state ) {
+    return state.items;
+  },
+  getSelectedItem( state ) {
+    return state.selectedItem;
+  },
+};
+
+const store = createReduxStore( 'my-plugin/store', {
+  reducer( state = DEFAULT_STATE, action ) {
+    switch ( action.type ) {
+      case 'SET_ITEMS':
+        return {
+          ...state,
+          items: action.items,
+        };
+      case 'SELECT_ITEM':
+        return {
+          ...state,
+          selectedItem: action.itemId,
+        };
+    }
+    return state;
+  },
+  actions,
+  selectors,
+});
+
+register( store );
+```
+
+## Registry Selectors
+
+Create selectors that can access other stores:
+
+```js
+import { createRegistrySelector } from '@wordpress/data';
+import { store as editorStore } from '@wordpress/editor';
+import { store as coreStore } from '@wordpress/core-data';
+
+const getCurrentPostType = createRegistrySelector( ( select ) => () => {
+  return select( editorStore ).getCurrentPostType();
+} );
+
+const getCurrentPostEdits = createRegistrySelector( ( select ) => () => {
+  const postType = getCurrentPostType();
+  const postId = select( editorStore ).getCurrentPostId();
+  return select( coreStore ).getEntityRecordEdits( 'postType', postType, postId );
+} );
+```
+
+## Performance Optimization
+
+### Batch Updates
+
+Use `registry.batch()` to group multiple updates and trigger listeners once:
+
+```js
+import { useRegistry } from '@wordpress/data';
+
+function BatchUpdateExample() {
+  const registry = useRegistry();
+
+  const handleBulkUpdate = () => {
+    registry.batch( () => {
+      registry.dispatch( 'my-store' ).action1();
+      registry.dispatch( 'my-store' ).action2();
+      registry.dispatch( 'my-store' ).action3();
+    } );
+    // Listeners notified only once
+  };
+
+  return <button onClick={ handleBulkUpdate }>Bulk Update</button>;
+}
+```
+
+### Memoized Selectors
+
+Use `createSelector` for expensive computations:
+
+```js
+import { createSelector } from '@wordpress/data';
+
+const getExpensiveComputation = createSelector(
+  ( state, itemId ) => {
+    // Expensive calculation here
+    const item = state.items.find( ( i ) => i.id === itemId );
+    return processItem( item );
+  },
+  ( state ) => [ state.items ]
+);
+```
+
+## Common Patterns
+
+### Loading States
+
+```jsx
+function PagesWithStates() {
+  const { pages, hasResolved, isResolving, hasError } = useSelect( ( select ) => {
+    const selectorArgs = [ 'postType', 'page', {} ];
+    return {
+      pages: select( coreDataStore ).getEntityRecords( ...selectorArgs ),
+      hasResolved: select( coreDataStore ).hasFinishedResolution(
+        'getEntityRecords',
+        selectorArgs
+      ),
+      isResolving: select( coreDataStore ).isResolving(
+        'getEntityRecords',
+        selectorArgs
+      ),
+      hasError: select( coreDataStore ).getLastEntityRecordsError( ...selectorArgs ),
+    };
+  }, [] );
+
+  if ( isResolving ) {
+    return <Spinner />;
+  }
+
+  if ( hasError ) {
+    return <div>Error loading pages: { hasError.message }</div>;
+  }
+
+  if ( hasResolved && ! pages?.length ) {
+    return <div>No pages found</div>;
+  }
+
+  return (
+    <ul>
+      { pages?.map( ( page ) => (
+        <li key={ page.id }>{ page.title.rendered }</li>
+      ) ) }
+    </ul>
+  );
+}
+```
+
+### Optimistic Updates
+
+```jsx
+function OptimisticDelete( { pageId } ) {
+  const { deleteEntityRecord } = useDispatch( coreDataStore );
+
+  const handleDelete = async () => {
+    try {
+      // Optimistically remove from UI
+      await deleteEntityRecord( 'postType', 'page', pageId, {}, { throwOnError: true } );
+      // Show success message
+    } catch ( error ) {
+      // Revert and show error
+    }
+  };
+
+  return <button onClick={ handleDelete }>Delete</button>;
+}
+```
+
+## Best Practices
+
+1. **Use dependencies correctly**: Always include external variables in `useSelect` dependencies
+2. **Avoid over-selecting**: Only select the data you need to minimize re-renders
+3. **Handle loading states**: Always check resolution status before rendering data
+4. **Use batch for multiple updates**: Group related state changes together
+5. **Leverage caching**: Resolvers cache responses automatically - take advantage of this
+
+## Next Steps
+
+- Explore [Filters and Hooks](/guides/filters-and-hooks) for extending functionality
+- Learn about [Editor Customization](/guides/editor-customization)
+- Read the [@wordpress/data package documentation](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-data/)

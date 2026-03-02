@@ -1,0 +1,231 @@
+---
+title: Blocks
+description: Understanding blocks and how they work in the WordPress Gutenberg Block Editor
+---
+
+## What are blocks?
+
+Blocks are the fundamental building units of content in the WordPress block editor. Think of blocks as abstract units for structuring and interacting with content—everything from a paragraph to a video to the site title is represented as a block.
+
+When you compose blocks together, they create the complete content for a webpage. Blocks provide a consistent, unified interface across all content types while maintaining the flexibility to handle diverse content needs.
+
+<Note>
+Blocks combine concepts from WordPress shortcodes, custom HTML, and embed discovery into a single consistent API and user experience.
+</Note>
+
+## Block capabilities
+
+Blocks offer rich interaction capabilities. You can:
+
+- Insert, move, and reorder blocks freely
+- Copy, duplicate, and transform blocks between types
+- Delete and drag blocks to reorganize content
+- Combine blocks hierarchically to build complex layouts
+- Reuse blocks across multiple posts and post types
+- Share blocks within the same post
+
+<Tip>
+Think of blocks as a more graceful shortcode, with rich formatting tools for users to compose content.
+</Tip>
+
+## Block structure
+
+Each block is represented as a JavaScript object with a specific structure:
+
+```js
+const block = {
+  clientId,      // unique string identifier
+  type,          // block type (e.g., 'core/paragraph', 'core/image')
+  attributes,    // key-value pairs of block properties and content
+  innerBlocks,   // array of child blocks (for nested structures)
+};
+```
+
+### Example blocks
+
+Here's a simple paragraph block:
+
+```js
+const paragraphBlock = {
+  clientId: '51828be1-5f0d-4a6b-8099-f4c6f897e0a3',
+  type: 'core/paragraph',
+  attributes: {
+    content: 'This is the <strong>content</strong> of the paragraph block',
+    dropCap: true,
+  },
+};
+```
+
+And a columns block with nested structure:
+
+```js
+const columnsBlock = {
+  clientId: '51828be1-5f0d-4a6b-8099-f4c6f897e0a7',
+  type: 'core/columns',
+  attributes: {},
+  innerBlocks: [
+    {
+      clientId: '51828be1-5f0d-4a6b-8099-f4c6f897e0a5',
+      type: 'core/column',
+      attributes: {},
+      innerBlocks: [ paragraphBlock1 ],
+    },
+    {
+      clientId: '51828be1-5f0d-4a6b-8099-f4c6f897e0a6',
+      type: 'core/column',
+      attributes: {},
+      innerBlocks: [ paragraphBlock2 ],
+    },
+  ],
+};
+```
+
+## Block user interface
+
+You can customize block settings and content in three main places:
+
+1. **Block canvas** - The visual editing area where you directly manipulate content
+2. **Block toolbar** - Quick-access formatting and transformation tools
+3. **Block inspector** - Advanced settings and configuration options
+
+## Block composability
+
+Blocks are hierarchical—a block can be nested within another block. The container block is called the **parent**, and blocks inside it are called **children**.
+
+<Info>
+The API that governs child block usage is named `InnerBlocks`. For example, a Columns block can be the parent block to multiple child blocks in each of its columns.
+</Info>
+
+## Block data and attributes
+
+Blocks understand content as **attributes** and are serializable to HTML. When saved, blocks use a special HTML comment syntax:
+
+```html
+<!-- wp:paragraph {"key": "value"} -->
+<p>Welcome to the world of blocks.</p>
+<!-- /wp:paragraph -->
+```
+
+This format:
+- Uses HTML comments as delimiters (`<!-- wp:name -->` and `<!-- /wp:name -->`)
+- Contains a JSON object with block attributes in the opening tag
+- Preserves the rendered HTML content between tags
+- Remains readable and compatible with legacy WordPress tools
+
+## Block types
+
+### Static blocks
+
+Static blocks contain rendered content and an object of attributes used to re-render based on changes. The content is stored directly in the post.
+
+### Dynamic blocks
+
+Dynamic blocks require server-side data and rendering while the post content is being generated. They execute PHP code to produce their output.
+
+```html
+<!-- wp:latest-posts {"postsToShow":4,"displayPostDate":true} /-->
+```
+
+## Block transforms
+
+Blocks can transform into other block types. This enables:
+
+- Basic operations like converting a paragraph into a heading
+- Complex transformations like multiple images becoming a gallery
+- Transformations for single blocks and multi-block selections
+- Transformations to internal block variations
+
+## Block variations
+
+A **block variation** is a predefined set of initial attributes for a block type. This API allows creating multiple configurations from a single block:
+
+- Show up as entirely new blocks in the block library
+- Appear as presets when inserting a new block
+- Provide different interfaces for the same underlying block type
+
+<Tip>
+Block variations let you create a single block from which multiple configurations are possible, reducing code duplication.
+</Tip>
+
+## Registering blocks
+
+You register blocks using the `registerBlockType` function from `@wordpress/blocks`:
+
+```js
+import { registerBlockType } from '@wordpress/blocks';
+import { __ } from '@wordpress/i18n';
+
+registerBlockType( 'namespace/block-name', {
+  title: __( 'My First Block' ),
+  edit: () => <div>{ __( 'Hello from the editor!' ) }</div>,
+  save: () => <div>Hello from the saved content!</div>,
+} );
+```
+
+## Creating blocks
+
+You create block instances programmatically using the `createBlock` function:
+
+```js
+import { createBlock } from '@wordpress/blocks';
+
+const block = createBlock(
+  'core/paragraph',
+  { content: 'Hello World' }
+);
+```
+
+## Reusable blocks
+
+A **reusable block** is an instance of a block (or multiple blocks) that can be inserted and edited in multiple places while remaining in sync everywhere.
+
+<Note>
+Internally, reusable blocks are stored as a hidden post type (`wp_block`) and are dynamic blocks that reference the `post_id` and return the `post_content` for that block.
+</Note>
+
+Key characteristics:
+- Edits appear on every use of that block
+- Saves time from making the same edit on different posts
+- Examples include repeated headings, sidebar widgets, or common call-to-action sections
+
+## Block patterns
+
+A **block pattern** is a group of blocks combined together to create a design pattern. Unlike reusable blocks:
+
+- Patterns provide starting points for building layouts quickly
+- Once inserted, patterns don't remain in sync with the original
+- Blocks within patterns are meant to be edited and customized
+- Themes can register patterns matching their design language
+- Patterns can range from a single block to a full page of content
+
+## Block API reference
+
+The `@wordpress/blocks` package provides the core block API:
+
+<Accordion title="Key functions">
+
+- `registerBlockType()` - Register a new block type
+- `createBlock()` - Create a block instance
+- `cloneBlock()` - Clone an existing block
+- `getBlockType()` - Retrieve a registered block type
+- `getBlockTypes()` - Get all registered blocks
+- `parse()` - Parse HTML content into blocks
+- `serialize()` - Convert blocks to HTML
+- `switchToBlockType()` - Transform blocks to another type
+
+</Accordion>
+
+## Installation
+
+Install the blocks package in your project:
+
+```bash
+npm install @wordpress/blocks --save
+```
+
+## Next steps
+
+- Learn about the [Block Editor Architecture](/concepts/block-editor-architecture)
+- Explore the [Data Layer](/concepts/data-layer) that powers block interactions
+- Understand the [Component System](/concepts/components) for building block UIs
+- Discover [Extensibility](/concepts/extensibility) options for customizing blocks

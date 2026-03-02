@@ -1,0 +1,262 @@
+---
+title: Block API Overview
+description: Comprehensive guide to the WordPress Gutenberg Block Editor API and its core concepts
+---
+
+Blocks are the fundamental element of the WordPress Block Editor. They are the primary way plugins and themes register functionality and extend the editor's capabilities.
+
+## What is a Block?
+
+A block is a discrete unit of content or functionality in the WordPress editor. Each block encapsulates its own:
+
+- **Data structure** (attributes)
+- **User interface** (edit component)
+- **Saved output** (save function or render callback)
+- **Behavior** (transforms, variations, styles)
+
+## Block Registration Methods
+
+You can register blocks using two approaches:
+
+### 1. JavaScript-only Registration
+
+```js
+import { registerBlockType } from '@wordpress/blocks';
+
+registerBlockType( 'my-plugin/book', {
+    title: __( 'Book' ),
+    edit: () => <div>{ __( 'Hello from the editor!' ) }</div>,
+    save: () => <div>Hello from the saved content!</div>,
+} );
+```
+
+### 2. block.json Metadata (Recommended)
+
+The recommended approach is to use a `block.json` file that defines your block's metadata:
+
+```json
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "core/paragraph",
+    "title": "Paragraph",
+    "category": "text",
+    "description": "Start with the basic building block of all narrative.",
+    "keywords": [ "text" ],
+    "textdomain": "default",
+    "attributes": {
+        "content": {
+            "type": "rich-text",
+            "source": "rich-text",
+            "selector": "p",
+            "role": "content"
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "color": {
+            "gradients": true,
+            "link": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true
+        }
+    }
+}
+```
+
+Then register it in JavaScript:
+
+```js
+import { registerBlockType } from '@wordpress/blocks';
+import metadata from './block.json';
+import edit from './edit';
+import save from './save';
+
+registerBlockType( metadata, {
+    edit,
+    save,
+} );
+```
+
+## Core Block API Concepts
+
+<CardGroup cols={2}>
+  <Card title="Attributes" icon="database" href="/blocks/block-attributes">
+    Define the data structure and how it's stored in post content
+  </Card>
+  <Card title="Supports" icon="shield-check" href="/blocks/block-supports">
+    Enable editor features like colors, spacing, and typography
+  </Card>
+  <Card title="Patterns" icon="grid" href="/blocks/block-patterns">
+    Create reusable block layouts for common designs
+  </Card>
+  <Card title="Inner Blocks" icon="boxes-stacked" href="/blocks/inner-blocks">
+    Build container blocks that can nest other blocks
+  </Card>
+</CardGroup>
+
+## Block Naming Convention
+
+<Warning>
+Block names must follow the pattern `namespace/block-name` and can only contain lowercase alphanumeric characters, dashes, and must start with a letter.
+</Warning>
+
+```js
+// ✅ Good examples
+registerBlockType( 'my-company-blocks/hero', {} );
+registerBlockType( 'awesome-gallery-plugin/slideshow', {} );
+
+// ❌ Bad examples
+registerBlockType( 'create-block/example', {} );  // Too generic
+registerBlockType( 'block/content', {} );          // Too generic
+registerBlockType( 'MyPlugin/Block', {} );         // Contains uppercase
+```
+
+<Note>
+The block name is stored in post content with every post using that block. Changing it later requires database migration.
+</Note>
+
+## Block Types
+
+### Static Blocks
+
+Blocks that render entirely in JavaScript and save static HTML:
+
+```js
+export default function save() {
+    const blockProps = useBlockProps.save();
+    return (
+        <div { ...blockProps }>
+            <p>This HTML is saved to the database</p>
+        </div>
+    );
+}
+```
+
+### Dynamic Blocks
+
+Blocks that render on the server using PHP:
+
+```php
+register_block_type( 'my-plugin/server-block', array(
+    'render_callback' => function( $attributes ) {
+        $wrapper_attributes = get_block_wrapper_attributes();
+        return sprintf(
+            '<div %1$s>%2$s</div>',
+            $wrapper_attributes,
+            'Server-rendered content'
+        );
+    },
+) );
+```
+
+## Block API Version
+
+The `apiVersion` field determines which version of the Block API your block uses:
+
+<ParamField path="apiVersion" type="number" default="3">
+  - **Version 1**: Original API (deprecated)
+  - **Version 2**: Introduces automatic wrapper element handling
+  - **Version 3**: Current version with enhanced features and performance
+</ParamField>
+
+```json
+{
+    "apiVersion": 3,
+    "name": "my-plugin/my-block"
+}
+```
+
+## TypeScript Support
+
+Gutenberg provides TypeScript type definitions for the Block API:
+
+```typescript
+import type { BlockEditProps } from '@wordpress/blocks';
+
+interface MyBlockAttributes {
+    content: string;
+    alignment: 'left' | 'center' | 'right';
+}
+
+export default function Edit( { attributes, setAttributes }: BlockEditProps<MyBlockAttributes> ) {
+    return (
+        <div>
+            <p>{ attributes.content }</p>
+        </div>
+    );
+}
+```
+
+## Block Data Flow
+
+Understanding how data flows through a block:
+
+<Steps>
+  <Step title="Parsing">
+    WordPress parses post content and extracts block data based on comment delimiters:
+    ```html
+    <!-- wp:paragraph {"align":"center"} -->
+    <p class="has-text-align-center">Hello World</p>
+    <!-- /wp:paragraph -->
+    ```
+  </Step>
+  
+  <Step title="Hydration">
+    Block attributes are extracted using the attribute sources defined in `block.json`
+  </Step>
+  
+  <Step title="Editing">
+    The `edit` component renders with current attributes and provides controls to modify them
+  </Step>
+  
+  <Step title="Saving">
+    The `save` function (or PHP render callback) generates the final HTML output
+  </Step>
+</Steps>
+
+## Block Collections
+
+Group related blocks together in the inserter:
+
+```js
+import { registerBlockCollection } from '@wordpress/blocks';
+
+registerBlockCollection( 'my-plugin', {
+    title: __( 'My Plugin Blocks' ),
+    icon: 'admin-plugins',
+} );
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use block.json for registration">
+    Always use `block.json` metadata files. They enable better performance, automatic translations, and server-side registration.
+  </Accordion>
+  
+  <Accordion title="Follow naming conventions">
+    Use a unique, descriptive namespace that represents your plugin or theme. This prevents conflicts with other blocks.
+  </Accordion>
+  
+  <Accordion title="Leverage Block Supports">
+    Use the supports API instead of building custom controls for common features like colors, spacing, and typography.
+  </Accordion>
+  
+  <Accordion title="Consider dynamic rendering">
+    For blocks with server-side data or complex logic, use dynamic blocks with PHP render callbacks.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Register Your First Block" href="/blocks/block-registration">
+    Learn the complete registration process
+  </Card>
+  <Card title="Define Block Attributes" href="/blocks/block-attributes">
+    Understand how to structure block data
+  </Card>
+</CardGroup>

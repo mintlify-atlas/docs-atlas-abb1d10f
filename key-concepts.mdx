@@ -1,0 +1,273 @@
+---
+title: Key Concepts
+description: Core concepts behind the Gutenberg Block Editor including blocks, patterns, templates, and the data model.
+---
+
+# Key Concepts
+
+Understanding the fundamental concepts of the Gutenberg Block Editor will help you build better experiences and extend WordPress effectively.
+
+## Blocks
+
+Blocks are the **abstract units** for structuring and interacting with content. When composed together, they create the content for a webpage. Everything from a paragraph to a video to the site title is represented as a block.
+
+### Block Interface
+
+Blocks provide a consistent interface. They can be:
+
+- Inserted and removed
+- Moved and reordered
+- Copied and duplicated
+- Transformed into other block types
+- Deleted and combined
+- Dragged and dropped
+- Reused across posts and post types
+
+<Tip>
+You can think of blocks as a more graceful shortcode, with rich formatting tools for composing content.
+</Tip>
+
+### Block Customization
+
+The settings and content of a block can be customized in three main places:
+
+1. **Block Canvas** - Direct manipulation of content within the editor
+2. **Block Toolbar** - Quick access to formatting and alignment tools
+3. **Block Inspector** - Detailed settings in the sidebar panel
+
+### Block Grammar and Serialization
+
+Blocks are serialized to HTML using comment delimiters. This raw form is called the **serialized** representation:
+
+```html
+<!-- wp:paragraph {"key": "value"} -->
+<p>Welcome to the world of blocks.</p>
+<!-- /wp:paragraph -->
+```
+
+The block grammar consists of:
+- HTML comment tags (self-closing or with begin/end tags)
+- Optional JSON object containing block attributes
+- The block's content or rendered output
+
+<Info>
+Blocks understand content as **attributes** and are serializable to HTML. This separation of structure and presentation enables powerful editing capabilities.
+</Info>
+
+### Static vs. Dynamic Blocks
+
+**Static blocks** contain rendered content and an object of attributes used to re-render based on changes. The content is saved directly in the post.
+
+**Dynamic blocks** require server-side data and rendering while the post content is being generated. They're rendered on-demand when the page loads.
+
+### Block Attributes
+
+Each block contains attributes or configuration settings, which can be sourced from:
+
+- Raw HTML in the content
+- Post meta fields
+- Other customizable origins
+
+Attributes define the block's state and appearance, making blocks flexible and reusable.
+
+## Composability
+
+Blocks are **hierarchical**—a block can be nested within another block. This parent-child relationship enables complex layouts.
+
+<Note>
+Nested blocks and their container are called **children** and **parent** respectively. The API governing child block usage is `InnerBlocks`.
+</Note>
+
+### Example: Columns Block
+
+A Columns block can be the parent block to multiple child blocks in each of its columns:
+
+```jsx
+<Columns>
+  <Column>
+    <Paragraph>Content in first column</Paragraph>
+    <Image />
+  </Column>
+  <Column>
+    <Heading>Second column heading</Heading>
+    <Paragraph>More content here</Paragraph>
+  </Column>
+</Columns>
+```
+
+## Block Transforms
+
+Blocks have the ability to be **transformed** into other block types. This enables:
+
+- Basic operations like converting a paragraph into a heading
+- Intricate transformations like multiple images becoming a gallery
+- Multi-block selections transforming together
+- Internal block variations as transformation targets
+
+Transforms make it easy to restructure content without starting from scratch.
+
+## Block Variations
+
+Given a block type, a **block variation** is a predefined set of its initial attributes. This API allows creating a single block from which multiple configurations are possible.
+
+Variations can appear as:
+- Entirely new blocks in the inserter
+- Presets when inserting a new block
+- Different starting states for the same block type
+
+<Tip>
+Block variations let you offer multiple interfaces and configurations from a single block implementation, reducing code duplication.
+</Tip>
+
+## Reusable Blocks
+
+A reusable block is an **instance** of a block (or multiple blocks) that can be inserted and edited in multiple places, remaining in sync everywhere.
+
+### Key Characteristics
+
+- Edits appear in every location where the reusable block is used
+- Saves time by avoiding duplicate edits across different posts
+- Perfect for content that appears consistently across your site
+
+### Technical Implementation
+
+Internally, reusable blocks are:
+- Stored as a hidden post type (`wp_block`)
+- Dynamic blocks that reference a `post_id`
+- Return the `post_content` for that block when rendered
+
+<Info>
+**Examples**: A heading with custom colors appearing on multiple pages, or sidebar widgets that appear site-wide.
+</Info>
+
+## Patterns
+
+A **block pattern** is a group of blocks combined together to create a design pattern. These provide starting points for building advanced pages and layouts quickly.
+
+### Pattern Characteristics
+
+- Can range from a single block to a full page of content
+- Don't remain in sync after insertion (unlike reusable blocks)
+- Are meant to be edited and customized by the user
+- Can be registered by themes to match their design language
+
+<Note>
+Under the surface, patterns are just regular blocks composed together. They provide consistency while allowing customization.
+</Note>
+
+### Use Cases
+
+- Hero sections with heading, paragraph, and button
+- Call-to-action blocks with specific styling
+- Portfolio layouts with images and text
+- Pricing tables with consistent structure
+
+## Templates
+
+While the post editor focuses on post content, the **template editor** allows declaring and editing an entire site using blocks, from header to footer.
+
+### Template System
+
+Templates are broken down into:
+
+1. **Templates** - Describe a full page (archive, singular, home, 404, etc.)
+2. **Template Parts** - Reusable areas within templates (header, sidebar, footer)
+
+Both can be:
+- Composed together and registered by themes
+- Fully editable by users in the block editor
+- Customized and saved to the `wp_template` post type
+
+### Site Editing Blocks
+
+Special blocks interact with different properties and settings of the site:
+
+- Site Title and Tagline
+- Site Logo
+- Navigation
+- Post Title, Content, and Featured Image
+- Query Loop for displaying posts
+- Template Part for reusable sections
+
+<Tip>
+**Note**: Custom post types can also have a starting `post_content` template, which is different from the theme template system.
+</Tip>
+
+## Styles (Global Styles)
+
+**Global Styles** is both an interface in the editor and a configuration system using the `theme.json` file.
+
+### Purpose
+
+The `theme.json` file:
+- Absorbs configuration scattered across `add_theme_support` calls
+- Simplifies communication with the editor
+- Declares what settings should be enabled
+- Defines available design tools (custom color palette, font sizes, etc.)
+- Coordinates styles from WordPress, the active theme, and the user
+
+### Style Hierarchy
+
+Styles merge in three layers:
+
+1. **WordPress defaults** - Base styles from core
+2. **`theme.json`** - Theme-provided settings and styles
+3. **User preferences** - Customizations made in the editor
+
+<Info>
+This layered approach ensures consistency while allowing progressive customization at each level.
+</Info>
+
+## Data Flow
+
+The block editor uses a **unidirectional data flow** architecture:
+
+1. **Blocks** are parsed from HTML into an in-memory tree structure
+2. **Attributes** define the current state of each block
+3. **User interactions** dispatch actions to update block attributes
+4. **Selectors** read the current state from data stores
+5. **Serialization** converts the block tree back to HTML for saving
+
+### Data Stores
+
+The editor uses `@wordpress/data` (Redux-like stores) for state management:
+
+- `core/block-editor` - Block editor state and selections
+- `core/editor` - Post editor state and meta
+- `core` - WordPress entities (posts, pages, media, etc.)
+
+Edit entities through actions like `editEntityRecord` and `saveEditedEntityRecord`, not direct state manipulation.
+
+## Package Architecture
+
+The block editor is built with **layered packages**:
+
+1. **`block-editor`** - Generic, WordPress-agnostic block editing
+2. **`editor`** - WordPress post-type-aware editing
+3. **`edit-post`/`edit-site`** - Full editing screens with UI
+
+<Note>
+Lower layers MUST NOT depend on higher ones. This ensures modularity and reusability.
+</Note>
+
+## Next Steps
+
+Now that you understand the core concepts, you're ready to:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="rocket" href="https://developer.wordpress.org/block-editor/getting-started/quick-start-guide/">
+    Build your first custom block
+  </Card>
+  
+  <Card title="Block API Reference" icon="code" href="https://developer.wordpress.org/block-editor/reference-guides/block-api/">
+    Explore the complete Block API
+  </Card>
+  
+  <Card title="Data Flow Architecture" icon="diagram-project" href="https://developer.wordpress.org/block-editor/explanations/architecture/data-flow/">
+    Learn about serialization and parsing
+  </Card>
+  
+  <Card title="Packages Reference" icon="box" href="https://developer.wordpress.org/block-editor/reference-guides/packages/">
+    Discover available npm packages
+  </Card>
+</CardGroup>

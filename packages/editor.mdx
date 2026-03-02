@@ -1,0 +1,1014 @@
+---
+title: '@wordpress/editor'
+description: WordPress post-aware editor with Core Data integration
+---
+
+# @wordpress/editor
+
+The `@wordpress/editor` package provides a WordPress post-aware editor implementation. It extends `@wordpress/block-editor` with WordPress-specific functionality, integrating with the REST API and Core Data.
+
+## Installation
+
+```bash
+npm install @wordpress/editor --save
+```
+
+<Info>
+  **Current Version**: 14.40.1
+  
+  This package assumes an **ES2015+** environment. Include the polyfill from [@wordpress/babel-preset-default](https://github.com/WordPress/gutenberg/tree/HEAD/packages/babel-preset-default#polyfill) if needed.
+</Info>
+
+## Architecture Position
+
+The `@wordpress/editor` is the **second layer** in Gutenberg's architecture:
+
+<Steps>
+  <Step title="Block Editor">
+    Generic, WordPress-agnostic (`@wordpress/block-editor`)
+  </Step>
+  <Step title="Editor (Current Layer)">
+    WordPress post-type aware (`@wordpress/editor`)
+  </Step>
+  <Step title="Implementations">
+    Full editor screens (`@wordpress/edit-post`, `@wordpress/edit-site`)
+  </Step>
+</Steps>
+
+This package:
+- Knows about WordPress posts and post types
+- Integrates with `@wordpress/core-data`
+- Handles post loading and saving
+- Provides post-specific UI components
+
+## How It Works
+
+The editor flow:
+
+1. **Parse**: Convert post content HTML to block representation
+2. **Render**: Display blocks in the editor with UI controls
+3. **Update**: Modify block state as user edits
+4. **Serialize**: Convert blocks back to HTML
+5. **Save**: Persist to WordPress via REST API
+
+```javascript
+import { parse, serialize } from '@wordpress/blocks';
+
+// Parse post content into blocks
+const blocks = parse( post.content.raw );
+
+// User edits blocks in the editor...
+
+// Serialize blocks back to HTML
+const content = serialize( blocks );
+
+// Save to post_content field
+```
+
+## Quick Start
+
+### EditorProvider
+
+The root component for post editing:
+
+```jsx
+import { EditorProvider } from '@wordpress/editor';
+import { SlotFillProvider } from '@wordpress/components';
+
+function MyPostEditor( { post, settings } ) {
+  return (
+    <SlotFillProvider>
+      <EditorProvider
+        post={ post }
+        settings={ settings }
+      >
+        { /* Your editor UI */ }
+      </EditorProvider>
+    </SlotFillProvider>
+  );
+}
+```
+
+<ParamField path="post" type="Object" required>
+  The post object to edit:
+  - `id`: Post ID
+  - `type`: Post type
+  - `content`: Post content
+  - `title`: Post title
+  - Other post fields
+</ParamField>
+
+<ParamField path="__unstableTemplate" type="Object">
+  Optional template object wrapping the post (for posts/pages with templates)
+</ParamField>
+
+<ParamField path="settings" type="Object">
+  Editor settings. Extends `@wordpress/block-editor` settings with post-specific options
+</ParamField>
+
+<ParamField path="children" type="React.ReactNode">
+  Child components to render within the editor context
+</ParamField>
+
+## Post Components
+
+### PostTitle
+
+Editable post title input.
+
+```jsx
+import { PostTitle } from '@wordpress/editor';
+
+function EditorHeader() {
+  return (
+    <div className="editor-header">
+      <PostTitle />
+    </div>
+  );
+}
+```
+
+### PostTextEditor
+
+Text mode editor (HTML view).
+
+```jsx
+import { PostTextEditor } from '@wordpress/editor';
+
+<PostTextEditor />
+```
+
+### DocumentBar
+
+Navigation bar showing document title and back button.
+
+```jsx
+import { DocumentBar } from '@wordpress/editor';
+
+<DocumentBar 
+  title="Custom Title"
+  icon={ myIcon }
+/>
+```
+
+<ParamField path="title" type="string">
+  Document title (defaults to post/template title)
+</ParamField>
+
+<ParamField path="icon" type="IconType">
+  Icon to display
+</ParamField>
+
+## Post Metadata Components
+
+### PostExcerpt
+
+Post excerpt editor.
+
+```jsx
+import { PostExcerpt } from '@wordpress/editor';
+
+<PostExcerpt
+  hideLabelFromVision={ false }
+  updateOnBlur={ true }
+/>
+```
+
+<ParamField path="hideLabelFromVision" type="boolean">
+  Whether to visually hide the label
+</ParamField>
+
+<ParamField path="updateOnBlur" type="boolean">
+  Whether to update on blur instead of on change
+</ParamField>
+
+### PostFeaturedImage
+
+Featured image selector.
+
+```jsx
+import { PostFeaturedImage } from '@wordpress/editor';
+
+<PostFeaturedImage />
+```
+
+### PostAuthor
+
+Post author selector.
+
+```jsx
+import { PostAuthor } from '@wordpress/editor';
+
+<PostAuthor />
+```
+
+### PostSchedule
+
+Post scheduling controls.
+
+```jsx
+import { PostSchedule } from '@wordpress/editor';
+
+<PostSchedule onClose={ () => {} } />
+```
+
+### PostVisibility
+
+Post visibility controls (public, private, password-protected).
+
+```jsx
+import { PostVisibility } from '@wordpress/editor';
+
+<PostVisibility onClose={ () => {} } />
+```
+
+### PostFormat
+
+Post format selector.
+
+```jsx
+import { PostFormat } from '@wordpress/editor';
+
+<PostFormat />
+```
+
+### PostSticky
+
+Sticky post toggle.
+
+```jsx
+import { PostSticky } from '@wordpress/editor';
+
+<PostSticky />
+```
+
+## Taxonomy Components
+
+### PostTaxonomies
+
+Renders all taxonomies for the post.
+
+```jsx
+import { PostTaxonomies } from '@wordpress/editor';
+
+<PostTaxonomies
+  taxonomyWrapper={ ( content, taxonomy ) => (
+    <div key={ taxonomy.slug }>{ content }</div>
+  ) }
+/>
+```
+
+### PostTaxonomiesHierarchicalTermSelector
+
+Hierarchical taxonomy selector (like categories).
+
+```jsx
+import { PostTaxonomiesHierarchicalTermSelector } from '@wordpress/editor';
+
+<PostTaxonomiesHierarchicalTermSelector slug="category" />
+```
+
+<ParamField path="slug" type="string" required>
+  Taxonomy slug (e.g., 'category')
+</ParamField>
+
+### PostTaxonomiesFlatTermSelector
+
+Flat taxonomy selector (like tags).
+
+```jsx
+import { PostTaxonomiesFlatTermSelector } from '@wordpress/editor';
+
+<PostTaxonomiesFlatTermSelector slug="post_tag" />
+```
+
+<ParamField path="slug" type="string" required>
+  Taxonomy slug (e.g., 'post_tag')
+</ParamField>
+
+## Publishing Components
+
+### PostPublishButton
+
+Publish/update button.
+
+```jsx
+import { PostPublishButton } from '@wordpress/editor';
+
+<PostPublishButton />
+```
+
+### PostPublishPanel
+
+Pre-publish checklist panel.
+
+```jsx
+import { PostPublishPanel } from '@wordpress/editor';
+
+<PostPublishPanel />
+```
+
+### PostSavedState
+
+Shows save status and save button.
+
+```jsx
+import { PostSavedState } from '@wordpress/editor';
+
+<PostSavedState forceIsDirty={ false } />
+```
+
+<ParamField path="forceIsDirty" type="boolean">
+  Force the post to be marked as dirty
+</ParamField>
+
+### PostPreviewButton
+
+Preview button.
+
+```jsx
+import { PostPreviewButton } from '@wordpress/editor';
+
+<PostPreviewButton
+  className="editor-preview-button"
+  textContent="Preview"
+  onPreview={ () => console.log( 'Previewing...' ) }
+/>
+```
+
+### PostSwitchToDraftButton
+
+Switch to draft button (for published posts).
+
+```jsx
+import { PostSwitchToDraftButton } from '@wordpress/editor';
+
+<PostSwitchToDraftButton />
+```
+
+### PostTrash
+
+Move to trash button.
+
+```jsx
+import { PostTrash } from '@wordpress/editor';
+
+<PostTrash
+  onActionPerformed={ () => {
+    // Navigate away or show success message
+  } }
+/>
+```
+
+## Panel Components
+
+### PostExcerptPanel
+
+Excerpt panel for sidebar.
+
+```jsx
+import { PostExcerptPanel } from '@wordpress/editor';
+
+<PostExcerptPanel />
+```
+
+### PostFeaturedImagePanel
+
+Featured image panel for sidebar.
+
+```jsx
+import { PostFeaturedImagePanel } from '@wordpress/editor';
+
+<PostFeaturedImagePanel withPanelBody={ true } />
+```
+
+### PostTaxonomiesPanel
+
+Taxonomies panel for sidebar.
+
+```jsx
+import { PostTaxonomiesPanel } from '@wordpress/editor';
+
+<PostTaxonomiesPanel />
+```
+
+### PostDiscussionPanel
+
+Comments and pingbacks panel.
+
+```jsx
+import { PostDiscussionPanel } from '@wordpress/editor';
+
+<PostDiscussionPanel />
+```
+
+### PostLastRevisionPanel
+
+Post revisions panel.
+
+```jsx
+import { PostLastRevisionPanel } from '@wordpress/editor';
+
+<PostLastRevisionPanel />
+```
+
+### PageAttributesPanel
+
+Page attributes (parent, order, template).
+
+```jsx
+import { PageAttributesPanel } from '@wordpress/editor';
+
+<PageAttributesPanel />
+```
+
+## Plugin Extension Points
+
+### PluginDocumentSettingPanel
+
+Add custom panels to document settings.
+
+```jsx
+import { PluginDocumentSettingPanel } from '@wordpress/editor';
+import { registerPlugin } from '@wordpress/plugins';
+
+const MyPanel = () => (
+  <PluginDocumentSettingPanel
+    name="my-custom-panel"
+    title="My Custom Settings"
+    className="my-custom-panel"
+  >
+    <p>Custom panel content</p>
+  </PluginDocumentSettingPanel>
+);
+
+registerPlugin( 'my-custom-panel', { render: MyPanel } );
+```
+
+<ParamField path="name" type="string" required>
+  Unique panel identifier
+</ParamField>
+
+<ParamField path="title" type="string">
+  Panel title
+</ParamField>
+
+<ParamField path="className" type="string">
+  Additional CSS class
+</ParamField>
+
+<ParamField path="icon" type="WPBlockTypeIconRender">
+  Panel icon
+</ParamField>
+
+### PluginPostStatusInfo
+
+Add items to post status panel.
+
+```jsx
+import { PluginPostStatusInfo } from '@wordpress/editor';
+import { registerPlugin } from '@wordpress/plugins';
+
+const MyStatusInfo = () => (
+  <PluginPostStatusInfo className="my-status-info">
+    <p>Word count: 500</p>
+  </PluginPostStatusInfo>
+);
+
+registerPlugin( 'my-status-info', { render: MyStatusInfo } );
+```
+
+### PluginPrePublishPanel
+
+Add panel to pre-publish checklist.
+
+```jsx
+import { PluginPrePublishPanel } from '@wordpress/editor';
+import { registerPlugin } from '@wordpress/plugins';
+
+const MyPrePublishPanel = () => (
+  <PluginPrePublishPanel
+    title="Pre-publish Checklist"
+    initialOpen={ true }
+  >
+    <p>Review your content before publishing</p>
+  </PluginPrePublishPanel>
+);
+
+registerPlugin( 'my-prepublish-panel', { render: MyPrePublishPanel } );
+```
+
+### PluginPostPublishPanel
+
+Add panel to post-publish flow.
+
+```jsx
+import { PluginPostPublishPanel } from '@wordpress/editor';
+import { registerPlugin } from '@wordpress/plugins';
+
+const MyPostPublishPanel = () => (
+  <PluginPostPublishPanel
+    title="Share Your Post"
+    initialOpen={ true }
+  >
+    <p>Share on social media...</p>
+  </PluginPostPublishPanel>
+);
+
+registerPlugin( 'my-postpublish-panel', { render: MyPostPublishPanel } );
+```
+
+### PluginSidebar
+
+Add custom sidebar.
+
+```jsx
+import { PluginSidebar } from '@wordpress/editor';
+import { registerPlugin } from '@wordpress/plugins';
+import { PanelBody } from '@wordpress/components';
+
+const MySidebar = () => (
+  <PluginSidebar
+    name="my-sidebar"
+    title="My Sidebar"
+    icon="admin-plugins"
+  >
+    <PanelBody>
+      <p>Sidebar content</p>
+    </PanelBody>
+  </PluginSidebar>
+);
+
+registerPlugin( 'my-sidebar', { render: MySidebar } );
+```
+
+<ParamField path="name" type="string" required>
+  Unique sidebar identifier
+</ParamField>
+
+<ParamField path="title" type="string" required>
+  Sidebar title
+</ParamField>
+
+<ParamField path="icon" type="WPBlockTypeIconRender">
+  Sidebar icon
+</ParamField>
+
+<ParamField path="isPinnable" type="boolean">
+  Whether sidebar can be pinned (automatically renders menu item)
+</ParamField>
+
+### PluginBlockSettingsMenuItem
+
+Add item to block settings menu.
+
+```jsx
+import { PluginBlockSettingsMenuItem } from '@wordpress/editor';
+import { registerPlugin } from '@wordpress/plugins';
+
+const MyBlockMenuItem = () => (
+  <PluginBlockSettingsMenuItem
+    allowedBlocks={ [ 'core/paragraph' ] }
+    icon="admin-plugins"
+    label="Custom Action"
+    onClick={ () => console.log( 'Clicked!' ) }
+  />
+);
+
+registerPlugin( 'my-block-menu-item', { render: MyBlockMenuItem } );
+```
+
+<ParamField path="allowedBlocks" type="Array">
+  Block names to show this item for
+</ParamField>
+
+<ParamField path="icon" type="WPBlockTypeIconRender">
+  Menu item icon
+</ParamField>
+
+<ParamField path="label" type="string" required>
+  Menu item text
+</ParamField>
+
+<ParamField path="onClick" type="Function" required>
+  Click handler
+</ParamField>
+
+### PluginMoreMenuItem
+
+Add item to More Menu (three dots).
+
+```jsx
+import { PluginMoreMenuItem } from '@wordpress/editor';
+import { registerPlugin } from '@wordpress/plugins';
+
+const MyMoreMenuItem = () => (
+  <PluginMoreMenuItem
+    icon="admin-plugins"
+    onClick={ () => console.log( 'More menu clicked' ) }
+  >
+    Custom Action
+  </PluginMoreMenuItem>
+);
+
+registerPlugin( 'my-more-menu-item', { render: MyMoreMenuItem } );
+```
+
+## Monitoring Components
+
+### AutosaveMonitor
+
+Monitors changes and triggers autosave.
+
+```jsx
+import { AutosaveMonitor } from '@wordpress/editor';
+
+<AutosaveMonitor interval={ 30000 } />
+```
+
+<ParamField path="interval" type="number">
+  Autosave interval in milliseconds (e.g., 30000 for 30 seconds)
+</ParamField>
+
+<Info>
+  The logic checks for changes every `interval` seconds. If changes are detected and the post is autosaveable, it calls the autosave action.
+</Info>
+
+### LocalAutosaveMonitor
+
+Manages browser-based local autosaves.
+
+```jsx
+import { LocalAutosaveMonitor } from '@wordpress/editor';
+
+<LocalAutosaveMonitor />
+```
+
+Automatically handles:
+- Creating local autosaves in sessionStorage
+- Prompting to restore local autosaves
+- Clearing local autosaves after successful save
+
+### PostLockedModal
+
+Displays when another user is editing the post.
+
+```jsx
+import { PostLockedModal } from '@wordpress/editor';
+
+<PostLockedModal />
+```
+
+Shows lock information and options to take over or exit.
+
+### UnsavedChangesWarning
+
+Warns before leaving with unsaved changes.
+
+```jsx
+import { UnsavedChangesWarning } from '@wordpress/editor';
+
+<UnsavedChangesWarning />
+```
+
+## Keyboard Shortcuts
+
+### EditorKeyboardShortcuts
+
+Registers editor keyboard shortcuts.
+
+```jsx
+import { EditorKeyboardShortcuts } from '@wordpress/editor';
+
+<EditorKeyboardShortcuts />
+```
+
+Provides shortcuts for:
+- Toggle editor mode (Ctrl+Shift+Alt+M)
+- Save post (Ctrl+S)
+- Undo/Redo (Ctrl+Z / Ctrl+Shift+Z)
+- Toggle distraction-free mode
+- Toggle list view
+- Toggle sidebar
+
+## History Controls
+
+### EditorHistoryUndo
+
+Undo button.
+
+```jsx
+import { EditorHistoryUndo } from '@wordpress/editor';
+
+<EditorHistoryUndo />
+```
+
+### EditorHistoryRedo
+
+Redo button.
+
+```jsx
+import { EditorHistoryRedo } from '@wordpress/editor';
+
+<EditorHistoryRedo />
+```
+
+## Document Utilities
+
+### DocumentOutline
+
+Displays document heading structure.
+
+```jsx
+import { DocumentOutline } from '@wordpress/editor';
+
+<DocumentOutline
+  onSelect={ ( block ) => {
+    // Navigate to block
+  } }
+  hasOutlineItemsDisabled={ false }
+/>
+```
+
+### TableOfContents
+
+Table of contents dropdown.
+
+```jsx
+import { TableOfContents } from '@wordpress/editor';
+
+<TableOfContents
+  hasOutlineItemsDisabled={ false }
+/>
+```
+
+### CharacterCount
+
+Returns character count of post content.
+
+```jsx
+import { CharacterCount } from '@wordpress/editor';
+
+function MyComponent() {
+  return (
+    <div>
+      Characters: <CharacterCount />
+    </div>
+  );
+}
+```
+
+### TimeToRead
+
+Estimated reading time.
+
+```jsx
+import { TimeToRead } from '@wordpress/editor';
+
+<TimeToRead />
+```
+
+## Utility Functions
+
+### cleanForSlug
+
+Cleans a string for use as a post slug.
+
+```javascript
+import { cleanForSlug } from '@wordpress/editor';
+
+const slug = cleanForSlug( 'My Post Title!' );
+// "my-post-title"
+```
+
+<ParamField path="string" type="string" required>
+  Title or slug to process
+</ParamField>
+
+<ResponseField name="return" type="string">
+  Processed slug string
+</ResponseField>
+
+<Info>
+  This approximates what WordPress `sanitize_title()` does but is client-side only.
+</Info>
+
+### mediaUpload
+
+Upload media files with current post ID.
+
+```javascript
+import { mediaUpload } from '@wordpress/editor';
+
+mediaUpload( {
+  allowedTypes: [ 'image' ],
+  filesList: files,
+  onFileChange: ( [ media ] ) => {
+    console.log( 'Uploading:', media );
+  },
+  onSuccess: ( [ media ] ) => {
+    console.log( 'Uploaded:', media );
+  },
+  onError: ( error ) => {
+    console.error( 'Upload failed:', error );
+  },
+} );
+```
+
+## Check Components
+
+Conditional rendering components:
+
+### PostTypeSupportCheck
+
+```jsx
+import { PostTypeSupportCheck } from '@wordpress/editor';
+
+<PostTypeSupportCheck supportKeys="excerpt">
+  { /* Only rendered if post type supports excerpts */ }
+  <PostExcerpt />
+</PostTypeSupportCheck>
+```
+
+### PostAuthorCheck
+
+```jsx
+import { PostAuthorCheck } from '@wordpress/editor';
+
+<PostAuthorCheck>
+  <PostAuthor />
+</PostAuthorCheck>
+```
+
+### PostFeaturedImageCheck
+
+```jsx
+import { PostFeaturedImageCheck } from '@wordpress/editor';
+
+<PostFeaturedImageCheck>
+  <PostFeaturedImage />
+</PostFeaturedImageCheck>
+```
+
+### ThemeSupportCheck
+
+```jsx
+import { ThemeSupportCheck } from '@wordpress/editor';
+
+<ThemeSupportCheck supportKeys="post-thumbnails">
+  { /* Only rendered if theme supports post thumbnails */ }
+</ThemeSupportCheck>
+```
+
+## Saved States
+
+### EntitiesSavedStates
+
+Manages saving multiple entities (post + template).
+
+```jsx
+import { EntitiesSavedStates } from '@wordpress/editor';
+
+<EntitiesSavedStates
+  close={ () => setIsOpen( false ) }
+  renderDialog={ true }
+  variant="inline"
+/>
+```
+
+<ParamField path="close" type="Function" required>
+  Function to close the dialog
+</ParamField>
+
+<ParamField path="renderDialog" type="boolean">
+  Whether to render as a modal dialog
+</ParamField>
+
+<ParamField path="variant" type="string">
+  `'inline'` renders action buttons at the end instead of start
+</ParamField>
+
+## Error Boundary
+
+### ErrorBoundary
+
+Catches JavaScript errors in child components.
+
+```jsx
+import { ErrorBoundary } from '@wordpress/editor';
+
+<ErrorBoundary>
+  { /* Your components */ }
+</ErrorBoundary>
+```
+
+## DataViews Integration
+
+### registerEntityField
+
+Register custom DataViews fields (experimental).
+
+```javascript
+import { registerEntityField } from '@wordpress/editor';
+
+registerEntityField( 'postType', 'post', {
+  id: 'custom-field',
+  label: 'Custom Field',
+  getValue: ( { item } ) => item.meta.custom_field,
+} );
+```
+
+### registerEntityAction
+
+Register custom DataViews actions (experimental).
+
+```javascript
+import { registerEntityAction } from '@wordpress/editor';
+
+registerEntityAction( 'postType', 'post', {
+  id: 'custom-action',
+  label: 'Custom Action',
+  callback: ( items ) => {
+    // Perform action
+  },
+} );
+```
+
+## Store
+
+The editor package includes a data store:
+
+```javascript
+import { store as editorStore } from '@wordpress/editor';
+import { useSelect, useDispatch } from '@wordpress/data';
+
+function MyComponent() {
+  const { title, isDirty } = useSelect( ( select ) => ( {
+    title: select( editorStore ).getEditedPostAttribute( 'title' ),
+    isDirty: select( editorStore ).isEditedPostDirty(),
+  } ), [] );
+  
+  const { editPost, savePost } = useDispatch( editorStore );
+  
+  return (
+    <div>
+      <input
+        value={ title }
+        onChange={ ( e ) => editPost( { title: e.target.value } ) }
+      />
+      <button onClick={ savePost } disabled={ ! isDirty }>
+        Save
+      </button>
+    </div>
+  );
+}
+```
+
+## TypeScript
+
+Type definitions are included:
+
+```typescript
+import type { EditorSettings } from '@wordpress/editor';
+
+const settings: EditorSettings = {
+  alignWide: true,
+  colors: [
+    { name: 'Red', slug: 'red', color: '#ff0000' }
+  ],
+};
+```
+
+## Dependencies
+
+Key dependencies:
+
+- `@wordpress/block-editor` - Generic block editor
+- `@wordpress/blocks` - Block API
+- `@wordpress/core-data` - WordPress data entities
+- `@wordpress/data` - State management
+- `@wordpress/components` - UI components
+- `@wordpress/element` - React abstraction
+- And 30+ other packages
+
+See [package.json](https://github.com/WordPress/gutenberg/blob/HEAD/packages/editor/package.json) for the complete list.
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="Editor Handbook" icon="book" href="https://developer.wordpress.org/block-editor/">
+    Complete editor documentation
+  </Card>
+  
+  <Card title="Plugin Extension Points" icon="plug" href="https://developer.wordpress.org/block-editor/how-to-guides/plugin-sidebar-0/">
+    Extending the editor with plugins
+  </Card>
+  
+  <Card title="GitHub Repository" icon="github" href="https://github.com/WordPress/gutenberg/tree/HEAD/packages/editor">
+    Source code and issue tracker
+  </Card>
+  
+  <Card title="Core Data Package" icon="database" href="/packages/data">
+    Learn about WordPress data management
+  </Card>
+</CardGroup>

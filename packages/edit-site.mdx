@@ -1,0 +1,326 @@
+---
+title: '@wordpress/edit-site'
+description: 'Full site editor screen for block themes, templates, and global styles'
+---
+
+## Overview
+
+The `@wordpress/edit-site` package provides the complete Site Editor interface for WordPress block themes. It enables you to edit templates, template parts, global styles, and site-wide design settings through a unified block-based interface.
+
+<Note>
+  This package is designed for WordPress core and may not be fully documented for external use. However, you can use it in your own projects with the understanding that APIs may evolve.
+</Note>
+
+## Three-Layer Architecture
+
+The Site Editor follows the same three-layer architecture as the post editor:
+
+```
+block-editor (WordPress-agnostic, generic editing)
+    ↓
+editor (WordPress entity-aware functionality)
+    ↓
+edit-site (Full site editor screen with templates and styles)
+```
+
+### Layer Responsibilities
+
+- **`@wordpress/block-editor`** - Generic block editing canvas. Provides the foundation for any block-based editing experience.
+- **`@wordpress/editor`** - WordPress entity management. Handles saving, revisions, and entity-specific features.
+- **`@wordpress/edit-site`** - Complete site editor implementation. Adds template management, global styles UI, navigation between templates, and pattern management.
+
+<Warning>
+  The architectural constraint applies here too: lower layers cannot depend on higher layers. The `block-editor` package must remain WordPress-agnostic.
+</Warning>
+
+## What the Site Editor Manages
+
+The Site Editor provides a unified interface for managing:
+
+- **Templates** - Full-page templates (e.g., index, single post, archive)
+- **Template Parts** - Reusable template components (e.g., header, footer, sidebar)
+- **Global Styles** - Site-wide design system including colors, typography, and spacing
+- **Patterns** - Reusable block patterns for quick content insertion
+- **Navigation Menus** - Block-based navigation structures
+- **Page Management** - Browse and edit site pages
+
+## Installation
+
+Install the package via npm:
+
+```bash
+npm install @wordpress/edit-site
+```
+
+**Environment Requirements:**
+
+This package requires an ES2015+ environment. If you're targeting older environments, include the polyfill from `@wordpress/babel-preset-default`.
+
+## Initializing the Site Editor
+
+You initialize the Site Editor using the `initialize` function:
+
+```js
+import { initialize } from '@wordpress/edit-site';
+
+// Initialize the site editor
+initialize('#editor-root', {
+  // Block editor settings
+  alignWide: true,
+  colors: [
+    { name: 'Primary', slug: 'primary', color: '#007cba' },
+    { name: 'Secondary', slug: 'secondary', color: '#23282d' },
+  ],
+  fontSizes: [
+    { name: 'Small', slug: 'small', size: 14 },
+    { name: 'Medium', slug: 'medium', size: 18 },
+    { name: 'Large', slug: 'large', size: 24 },
+  ],
+  // Additional editor settings
+  __experimentalFeatures: {
+    // Feature flags
+  },
+});
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `selector` | `string` | CSS selector for the root DOM element where the editor will mount |
+| `settings` | `Object` | Block editor settings object with theme support, colors, fonts, etc. |
+
+<Info>
+  The settings object should include all block editor configuration from your theme's `theme.json` file, merged with any programmatic settings.
+</Info>
+
+## Key Differences from Post Editor
+
+While `@wordpress/edit-post` focuses on individual posts and pages, `@wordpress/edit-site` manages site-wide elements:
+
+| Feature | edit-post | edit-site |
+|---------|-----------|----------|
+| **Primary Use** | Editing individual posts/pages | Editing templates and site design |
+| **Entity Types** | Posts, pages, custom post types | Templates, template parts, navigation |
+| **Scope** | Single content item | Site-wide elements |
+| **Navigation** | N/A (single item focus) | Template browser, pattern library |
+| **Styles** | Per-post settings | Global styles system |
+
+## Site Editor Features
+
+### Template Management
+
+The Site Editor provides a visual interface for managing templates:
+
+```js
+import { useSelect, useDispatch } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+
+// Get all available templates
+const templates = useSelect((select) => {
+  return select(coreStore).getEntityRecords('postType', 'wp_template');
+}, []);
+
+// Edit a template
+const { editEntityRecord, saveEditedEntityRecord } = useDispatch(coreStore);
+
+// Modify template content
+editEntityRecord('postType', 'wp_template', templateId, {
+  content: '<!-- wp:paragraph -->Updated content<!-- /wp:paragraph -->',
+});
+
+// Save changes
+await saveEditedEntityRecord('postType', 'wp_template', templateId);
+```
+
+### Global Styles Interface
+
+The Site Editor includes a comprehensive global styles panel:
+
+- **Typography** - Font families, sizes, line heights, and text decorations
+- **Colors** - Color palettes, duotone filters, and gradients
+- **Layout** - Content width, wide width, and spacing scales
+- **Blocks** - Per-block-type style overrides
+
+<Note>
+  Global styles follow a three-layer merge system: WordPress defaults < `theme.json` < user customizations. This ensures user preferences always take precedence.
+</Note>
+
+### Template Part Editing
+
+Template parts are reusable components that appear across multiple templates:
+
+```js
+import { useSelect, useDispatch } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+
+// Get template parts
+const templateParts = useSelect((select) => {
+  return select(coreStore).getEntityRecords('postType', 'wp_template_part', {
+    per_page: -1,
+  });
+}, []);
+
+// Create a new template part
+const { saveEntityRecord } = useDispatch(coreStore);
+
+await saveEntityRecord('postType', 'wp_template_part', {
+  slug: 'custom-footer',
+  title: 'Custom Footer',
+  content: '<!-- wp:paragraph -->Footer content<!-- /wp:paragraph -->',
+  area: 'footer',
+});
+```
+
+## Navigation and Routing
+
+The Site Editor uses client-side routing to navigate between different views:
+
+- `/` - Site Editor home with template browser
+- `/wp_template/all` - All templates view
+- `/wp_template/single/{slug}` - Edit specific template
+- `/wp_template_part/all` - All template parts view
+- `/patterns` - Pattern library
+- `/navigation` - Navigation menu editor
+- `/page` - Page management interface
+
+## Working with the Entity System
+
+The Site Editor works extensively with WordPress entities through `@wordpress/core-data`:
+
+```js
+import { useSelect, useDispatch } from '@wordpress/data';
+import { store as coreStore } from '@wordpress/core-data';
+
+// Read entity data
+const template = useSelect((select) => {
+  return select(coreStore).getEditedEntityRecord(
+    'postType',
+    'wp_template',
+    templateId
+  );
+}, [templateId]);
+
+// Check for unsaved changes
+const hasEdits = useSelect((select) => {
+  return select(coreStore).hasEditsForEntityRecord(
+    'postType',
+    'wp_template',
+    templateId
+  );
+}, [templateId]);
+
+// Edit and save
+const { editEntityRecord, saveEditedEntityRecord } = useDispatch(coreStore);
+
+editEntityRecord('postType', 'wp_template', templateId, {
+  title: 'Updated Template Title',
+});
+
+await saveEditedEntityRecord('postType', 'wp_template', templateId);
+```
+
+<Warning>
+  Always use `editEntityRecord` and `saveEditedEntityRecord` from `@wordpress/core-data` rather than manipulating state directly. This ensures proper tracking of changes and undo/redo support.
+</Warning>
+
+## Block Theme Requirements
+
+The Site Editor requires a block theme to function properly. Block themes must:
+
+1. Include an `index.html` template in the `/templates` directory
+2. Optionally provide a `theme.json` file for design system configuration
+3. Use block-based templates (HTML files with block markup)
+4. Define template parts in the `/parts` directory (optional)
+
+### theme.json Integration
+
+The Site Editor reads your theme's `theme.json` to populate available styles:
+
+```json
+{
+  "version": 2,
+  "settings": {
+    "color": {
+      "palette": [
+        { "slug": "primary", "color": "#007cba", "name": "Primary" },
+        { "slug": "secondary", "color": "#23282d", "name": "Secondary" }
+      ]
+    },
+    "typography": {
+      "fontSizes": [
+        { "slug": "small", "size": "14px", "name": "Small" },
+        { "slug": "medium", "size": "18px", "name": "Medium" }
+      ]
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "#ffffff",
+      "text": "#000000"
+    }
+  }
+}
+```
+
+## Extending the Site Editor
+
+You can extend the Site Editor using the same plugin system as the post editor:
+
+```js
+import { registerPlugin } from '@wordpress/plugins';
+import { PluginSidebar } from '@wordpress/editor';
+
+const SiteEditorExtension = () => (
+  <PluginSidebar
+    name="site-editor-extension"
+    title="Site Settings"
+    icon="admin-site"
+  >
+    <p>Custom site-wide settings go here</p>
+  </PluginSidebar>
+);
+
+registerPlugin('site-editor-extension', {
+  render: SiteEditorExtension,
+});
+```
+
+<Info>
+  Plugin components registered for the Site Editor appear in the template editing interface, allowing you to add custom panels and controls.
+</Info>
+
+## REST API Endpoints
+
+The Site Editor interacts with several WordPress REST API endpoints:
+
+- `/wp/v2/templates` - Template CRUD operations
+- `/wp/v2/template-parts` - Template part management
+- `/wp/v2/global-styles` - Global styles configuration
+- `/wp/v2/navigation` - Navigation menu data
+- `/wp/v2/patterns` - Pattern library access
+- `/wp/v2/template-types` - Available template types
+
+## Performance Considerations
+
+The Site Editor loads more data than the post editor. Consider these optimization strategies:
+
+1. **Lazy loading** - Load templates and patterns on demand
+2. **Caching** - Cache frequently accessed templates and global styles
+3. **Selective queries** - Only fetch needed fields using `_fields` parameter
+4. **Pagination** - Use pagination for large template and pattern lists
+
+## Related Packages
+
+- [`@wordpress/block-editor`](/packages/block-editor) - Generic block editing functionality
+- [`@wordpress/editor`](/packages/editor) - WordPress entity-aware editor features
+- [`@wordpress/core-data`](/packages/core-data) - WordPress entity management and REST API integration
+- [`@wordpress/global-styles-ui`](/packages/global-styles-ui) - Global styles interface components
+- [`@wordpress/router`](/packages/router) - Client-side routing for site editor navigation
+
+## Resources
+
+- [GitHub Repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/edit-site)
+- [npm Package](https://www.npmjs.com/package/@wordpress/edit-site)
+- [Block Theme Development Guide](https://developer.wordpress.org/themes/block-themes/)
+- [theme.json Reference](https://developer.wordpress.org/themes/advanced-topics/theme-json/)

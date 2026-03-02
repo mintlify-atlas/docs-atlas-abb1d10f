@@ -1,0 +1,176 @@
+---
+title: What is Gutenberg?
+description: Understanding the vision, philosophy, and architecture of the WordPress Gutenberg Block Editor.
+---
+
+# What is Gutenberg?
+
+Gutenberg is the codename for a revolutionary approach to WordPress site building and publishing. Named after Johannes Gutenberg, who revolutionized printing in the 15th century, this project aims to bring a similar transformation to digital publishing.
+
+## The Vision
+
+The Gutenberg project represents a fundamental shift in how you interact with WordPress. Instead of working with a single content area and complex shortcodes, you compose content using **blocks**—discrete, modular components that can be easily manipulated, arranged, and styled.
+
+<Info>
+The project is following a **four-phase roadmap** that will eventually touch every aspect of WordPress: Editing, Customization, Collaboration, and Multilingual support.
+</Info>
+
+## What Makes Gutenberg Different?
+
+### Modular Block System
+
+Every piece of content in the editor is a block. From a simple paragraph to a complex image gallery, each block:
+
+- Has its own settings and formatting controls
+- Can be inserted, moved, reordered, and deleted independently
+- Maintains a consistent interface across different content types
+- Can be nested within other blocks for complex layouts
+
+### Visual Content Creation
+
+Gutenberg provides a **visually intuitive** way to create media-rich pages. You see your content as it will appear on the front end, eliminating the disconnect between the editing experience and the published result.
+
+<Tip>
+Think of blocks as a more graceful shortcode, but with rich formatting tools and a consistent interface for composing content.
+</Tip>
+
+## The Block Editor Interface
+
+The Block Editor consists of three primary elements:
+
+1. **Inserter** - A panel for inserting blocks into the content canvas
+2. **Content Canvas** - The main editor where you compose content with blocks
+3. **Settings Panel** - Configuration options for individual blocks or the entire post
+
+## Core Components
+
+### Blocks
+
+Blocks are abstract units for structuring and interacting with content. When composed together, they create the content for a webpage. Everything from a paragraph to a video to the site title is represented as a block.
+
+```html
+<!-- wp:paragraph {"key": "value"} -->
+<p>Welcome to the world of blocks.</p>
+<!-- /wp:paragraph -->
+```
+
+Blocks are serialized to HTML with comment delimiters that preserve their structure and attributes.
+
+### Block Patterns
+
+Patterns are groups of blocks combined together to create design patterns. They provide starting points for building advanced pages and layouts quickly, without inserting individual blocks one at a time.
+
+<Note>
+Unlike reusable blocks, patterns don't remain in sync after insertion—they're meant to be customized and edited by you.
+</Note>
+
+### Templates and Template Parts
+
+With **Full Site Editing**, you can use blocks to build your entire site from header to footer. Templates describe full pages, while template parts represent reusable areas like headers, sidebars, and footers.
+
+### Global Styles
+
+The Global Styles system (configured through `theme.json`) provides a unified interface for managing design settings, color palettes, typography, and layout options across your entire site.
+
+## Technical Architecture
+
+### Data Format
+
+Blocks understand content as **attributes** and are serializable to HTML using a custom block grammar. The raw form of a block includes:
+
+- HTML comment delimiters (`<!-- wp:block-name -->`)
+- Optional JSON object with block attributes
+- The block's content or output
+
+### Block Types
+
+**Static blocks** contain rendered content and attributes used to re-render based on changes.
+
+**Dynamic blocks** require server-side data and rendering while post content is being generated.
+
+### Composability
+
+Blocks are hierarchical—a block can be nested within another block. The parent-child relationship is managed through the `InnerBlocks` API, enabling complex layouts like columns, groups, and covers.
+
+## Development Platform
+
+Beyond the editing experience, Gutenberg is a **powerful developer platform** with:
+
+- Rich JavaScript packages published on npm
+- Comprehensive REST API integration
+- Extensible data stores using `@wordpress/data`
+- Component library for building custom interfaces
+- Block development toolkit via `@wordpress/create-block`
+
+<CardGroup cols={2}>
+  <Card title="Key Concepts" icon="lightbulb" href="/key-concepts">
+    Dive deeper into blocks, patterns, and templates
+  </Card>
+  
+  <Card title="Quick Start Guide" icon="rocket" href="https://developer.wordpress.org/block-editor/getting-started/quick-start-guide/">
+    Build your first custom block
+  </Card>
+</CardGroup>
+
+## Monorepo Structure
+
+The Gutenberg project is maintained as a **monorepo** using Lerna, with:
+
+- **80+ JavaScript packages** in `/packages/` directory
+- **PHP code** in `/lib/` directory
+- **Comprehensive documentation** in `/docs/` directory
+- **WordPress plugin** that bundles the latest features
+
+```json
+{
+  "name": "gutenberg",
+  "description": "A new WordPress editor experience.",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "routes/*",
+    "storybook"
+  ]
+}
+```
+
+## Plugin vs. Core
+
+The **Gutenberg plugin** provides bleeding-edge features and improvements that are tested before being merged into WordPress Core. Installing the plugin gives you:
+
+- Latest block editor features
+- Experimental APIs and components
+- Performance improvements
+- New blocks and patterns
+
+<Tip>
+The plugin is perfect for developers who want to test upcoming features or contribute to the project.
+</Tip>
+
+## Open Source Development
+
+Gutenberg is developed openly on [GitHub](https://github.com/WordPress/gutenberg) with:
+
+- Continuous integration testing
+- Automated end-to-end tests
+- Community contributions from around the world
+- Regular releases every two weeks
+
+## Getting Started
+
+Ready to start building with Gutenberg? You have several options:
+
+1. **Try the live demo** at [wordpress.org/gutenberg](https://wordpress.org/gutenberg/)
+2. **Install the plugin** from the WordPress plugins repository
+3. **Set up a development environment** with `@wordpress/env`
+4. **Read the Block Editor Handbook** for comprehensive documentation
+
+<CardGroup cols={2}>
+  <Card title="Block Editor Handbook" icon="book" href="https://developer.wordpress.org/block-editor/">
+    Complete developer documentation and tutorials
+  </Card>
+  
+  <Card title="Storybook" icon="palette" href="https://wordpress.github.io/gutenberg/">
+    Interactive component documentation
+  </Card>
+</CardGroup>

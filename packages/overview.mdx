@@ -1,0 +1,273 @@
+---
+title: Packages Overview
+description: WordPress Gutenberg packages architecture and monorepo structure
+---
+
+# Packages Overview
+
+WordPress Gutenberg is organized as a monorepo containing multiple self-contained packages. These packages are published to npm and used by WordPress Core and other projects.
+
+## Monorepo Structure
+
+The Gutenberg project uses npm workspaces and Lerna to manage its packages:
+
+- **Location**: All packages are in the `/packages/` directory
+- **Build System**: Uses `@wordpress/scripts` for building and testing
+- **Package Management**: npm workspaces for dependency management
+- **Publishing**: Automated via Lerna synchronized with bi-weekly Gutenberg plugin releases
+
+## Package Guidelines
+
+When working with Gutenberg packages, follow these principles:
+
+1. **Single, clear purpose** - Each package should have one obvious responsibility
+2. **Complete documentation** - Every package must include a README
+3. **Document prerequisites** - State any API endpoints, authentication, or environment requirements
+4. **Public API documentation** - All public APIs should have inline or linked documentation
+5. **Avoid utility packages** - Don't create catch-all packages without coherent domains
+6. **Specific scope** - Define a specific domain instead of broad scopes like "utilities"
+
+## Package Types
+
+### WordPress Script Packages
+
+Packages that expose to the `wp` global in WordPress:
+
+```json
+{
+  "name": "@wordpress/blocks",
+  "wpScript": true
+}
+```
+
+These packages are available in WordPress as `wp.blocks`, `wp.data`, etc.
+
+### Script Module Packages
+
+Packages that expose as WordPress script modules:
+
+```json
+{
+  "wpScriptModuleExports": {
+    ".": "./build-module/index.js"
+  }
+}
+```
+
+### Dependency-Only Packages
+
+Packages that don't expose globally but are used as dependencies:
+
+```json
+{
+  "wpScript": false
+}
+```
+
+## Core Package Architecture
+
+### Three-Layer Editor Architecture
+
+Gutenberg follows a strict layering principle:
+
+<Tabs>
+  <Tab title="Layer 1: Block Editor">
+    **@wordpress/block-editor**
+    
+    - Generic, WordPress-agnostic block editing
+    - No knowledge of WordPress posts or REST API
+    - Provides UI components and block manipulation
+    - Version: 15.13.1
+  </Tab>
+  
+  <Tab title="Layer 2: Editor">
+    **@wordpress/editor**
+    
+    - WordPress post-type aware
+    - Integrates with `@wordpress/core-data`
+    - Handles post loading and saving
+    - Version: 14.40.1
+  </Tab>
+  
+  <Tab title="Layer 3: Implementations">
+    **@wordpress/edit-post**, **@wordpress/edit-site**
+    
+    - Full editor screens
+    - Complete editing experiences
+    - Post editor, site editor, etc.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Lower layers MUST NOT depend on higher ones. For example, `@wordpress/block-editor` should never import from `@wordpress/editor`.
+</Warning>
+
+## Key Packages
+
+### Data Management
+
+<CardGroup cols={2}>
+  <Card title="@wordpress/data" icon="database" href="/packages/data">
+    Redux-like state management system for WordPress
+    
+    Version: 10.40.0
+  </Card>
+  
+  <Card title="@wordpress/core-data" icon="server">
+    Entity-based data access to WordPress REST API
+  </Card>
+</CardGroup>
+
+### Block System
+
+<CardGroup cols={2}>
+  <Card title="@wordpress/blocks" icon="cube" href="/packages/blocks">
+    Block registration, parsing, and serialization
+    
+    Version: 15.13.0
+  </Card>
+  
+  <Card title="@wordpress/block-editor" icon="edit" href="/packages/block-editor">
+    Generic block editor components and hooks
+    
+    Version: 15.13.1
+  </Card>
+</CardGroup>
+
+### Editor Implementation
+
+<Card title="@wordpress/editor" icon="file-edit" href="/packages/editor">
+  Post-aware editor implementation with WordPress integration
+  
+  Version: 14.40.1
+</Card>
+
+## TypeScript Support
+
+Many Gutenberg packages support TypeScript:
+
+- Type declarations are generated in `build-types/` directory
+- Packages include `"types": "build-types"` in package.json
+- Use `tsconfig.json` to opt-in to TypeScript tooling
+
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "declarationDir": "build-types"
+  }
+}
+```
+
+## Node.js and npm Requirements
+
+All packages require:
+
+- **Node.js**: >= 18.12.0
+- **npm**: >= 8.19.2
+
+These align with the [Node.js Release Schedule](https://nodejs.org/en/about/previous-releases/) to ensure Active LTS or Maintenance LTS support.
+
+## Installation
+
+Install any Gutenberg package from npm:
+
+```bash
+npm install @wordpress/blocks --save
+npm install @wordpress/block-editor --save
+npm install @wordpress/editor --save
+npm install @wordpress/data --save
+```
+
+## Environment Requirements
+
+<Warning>
+  All packages assume an **ES2015+** environment. If you're using an environment with limited ES2015 support, include the polyfill from `@wordpress/babel-preset-default`.
+</Warning>
+
+```bash
+npm install @wordpress/babel-preset-default --save-dev
+```
+
+## Side Effects
+
+Packages declare side effects for tree-shaking optimization:
+
+```json
+{
+  "sideEffects": [
+    "src/index.js",
+    "src/store/index.js",
+    "build-style/**"
+  ]
+}
+```
+
+This helps bundlers like webpack optimize the final bundle size.
+
+## Publishing Process
+
+Packages are published to npm automatically:
+
+1. Synchronized with bi-weekly Gutenberg plugin RC1 releases
+2. Version bumps based on CHANGELOG.md entries
+3. Follows semantic versioning
+4. Pre-1.0 packages (0.x.x) can have breaking changes in minor versions
+
+## Package Dependencies
+
+Packages use `file:` protocol for local dependencies during development:
+
+```json
+{
+  "dependencies": {
+    "@wordpress/data": "file:../data",
+    "@wordpress/blocks": "file:../blocks"
+  }
+}
+```
+
+These are resolved to proper version numbers when published to npm.
+
+## Development Workflow
+
+### Building Packages
+
+```bash
+# Build all packages
+npm run build
+
+# Development with watch
+npm start
+```
+
+### Testing Packages
+
+```bash
+# Run all tests
+npm test
+
+# Test specific package
+npm run test:unit packages/blocks
+```
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Package Guidelines" icon="book" href="https://github.com/WordPress/gutenberg/tree/HEAD/packages#package-guidelines">
+    Complete guidelines for creating and maintaining packages
+  </Card>
+  
+  <Card title="Contributing Guide" icon="users" href="https://github.com/WordPress/gutenberg/tree/HEAD/CONTRIBUTING.md">
+    How to contribute to Gutenberg packages
+  </Card>
+  
+  <Card title="@wordpress/scripts" icon="wrench">
+    Build tooling for WordPress packages
+  </Card>
+  
+  <Card title="Release Process" icon="rocket" href="https://github.com/WordPress/gutenberg/tree/HEAD/docs/contributors/code/release">
+    Package release and versioning process
+  </Card>
+</CardGroup>

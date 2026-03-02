@@ -1,0 +1,128 @@
+---
+title: Contributing Overview
+description: Learn how to contribute to WordPress Gutenberg and get involved with the community
+---
+
+Welcome to WordPress Gutenberg's contributing guide! The Gutenberg project is an open-source initiative that welcomes all contributors—from code to design, and from documentation to triage. The project is built by many contributors and volunteers, and we'd love your help building the future of web publishing.
+
+## How You Can Contribute
+
+There are many ways to contribute to the Gutenberg project:
+
+<CardGroup cols={2}>
+  <Card title="Code Contributions" icon="code" href="/contributing/code-contributions">
+    Write JavaScript, PHP, or React Native code for the block editor
+  </Card>
+  <Card title="Design" icon="palette">
+    Contribute to UI/UX design and user experience improvements
+  </Card>
+  <Card title="Documentation" icon="book" href="/contributing/documentation">
+    Write and improve documentation for developers and users
+  </Card>
+  <Card title="Triage" icon="list-check">
+    Review existing issues to ensure they're relevant and actionable
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+<Steps>
+  <Step title="Join the Community">
+    Connect with the Gutenberg community in the `#core-editor` channel on [WordPress Slack](https://make.wordpress.org/chat/). Slack is free to join and is where real-time discussions take place.
+  </Step>
+  
+  <Step title="Read the Guidelines">
+    Review the [Code of Conduct](https://make.wordpress.org/handbook/community-code-of-conduct/) to ensure a welcoming environment for everyone. All contributors are expected to follow these guidelines.
+  </Step>
+  
+  <Step title="Choose Your Path">
+    Decide how you want to contribute:
+    - **Code**: See the [code contributions guide](/contributing/code-contributions)
+    - **Design**: Check the design section in the contributor handbook
+    - **Documentation**: Read the [documentation guide](/contributing/documentation)
+    - **Triage**: Help review and organize issues
+  </Step>
+  
+  <Step title="Start Contributing">
+    Browse [good first issues](https://github.com/wordpress/gutenberg/issues?q=is%3Aopen+is%3Aissue+label%3A%22Good+First+Issue%22) to find beginner-friendly tasks, or explore [good first review](https://github.com/WordPress/gutenberg/pulls?q=is%3Aopen+is%3Apr+label%3A%22Good+First+Review%22) pull requests if you're interested in code reviews.
+  </Step>
+</Steps>
+
+## Community Resources
+
+### Slack Channels
+
+Join the [WordPress Slack](https://make.wordpress.org/chat/) to connect with other contributors:
+
+- **#core-editor**: Main channel for Gutenberg development discussions
+- **#core-js**: JavaScript development discussions
+- **#docs**: Documentation contributions and meetings (Tuesdays at 14:00 UTC)
+
+### Development Hub
+
+The Gutenberg project uses GitHub for code management and issue tracking:
+
+- **Repository**: [https://github.com/WordPress/gutenberg](https://github.com/WordPress/gutenberg)
+- **Issues**: Browse [the issues list](https://github.com/wordpress/gutenberg/issues)
+- **Pull Requests**: Review [open pull requests](https://github.com/WordPress/gutenberg/pulls)
+
+### Additional Resources
+
+- [Make WordPress Core Blog](https://make.wordpress.org/core/): Latest announcements, meeting notes, and product goals
+- [Keeping up with Gutenberg Index](https://make.wordpress.org/core/handbook/references/keeping-up-with-gutenberg-index/): Track project updates
+- [Block Editor Handbook](https://developer.wordpress.org/block-editor/): Developer documentation
+- [Contributors Handbook](https://developer.wordpress.org/block-editor/contributors/): Complete contributor guide
+
+## Important Guidelines
+
+<Note>
+All WordPress projects follow the [WordPress Code of Conduct](https://make.wordpress.org/handbook/community-code-of-conduct/). With that in mind, all contributors are expected to maintain a welcoming environment for everyone.
+</Note>
+
+### Key Principles
+
+- **Accessibility**: Accessibility should be top of mind and thoroughly tested following the [accessibility testing instructions](https://github.com/WordPress/gutenberg/blob/HEAD/docs/contributors/accessibility-testing.md)
+- **Coding Standards**: Contributors should adhere to WordPress' [JavaScript coding standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/javascript/) and [accessibility coding standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/accessibility/)
+- **Copyright**: You maintain copyright over any contribution you make. By submitting a pull request, you agree to release that code under [Gutenberg's License](https://github.com/WordPress/gutenberg/blob/trunk/LICENSE.md)
+
+### React Native Considerations
+
+<Warning>
+If your changes affect function/class/variable names, verify that any changes in your PR are mirrored in the corresponding `.native.js` versions of the files to avoid introducing breaking changes in the [React Native Mobile Editor](https://github.com/WordPress/gutenberg/tree/trunk/docs/contributors/code/react-native).
+</Warning>
+
+## Finding Work
+
+### Good First Issues
+
+Issues labeled [Good First Issue](https://github.com/wordpress/gutenberg/issues?q=is%3Aopen+is%3Aissue+label%3A%22Good+First+Issue%22) are specifically identified as good for new contributors. When you find one you'd like to work on:
+
+1. Comment on the issue to indicate you intend to work on it
+2. Reference the issue number in your pull request when you submit it
+
+### Good First Reviews
+
+Pull requests labeled [Good First Review](https://github.com/WordPress/gutenberg/pulls?q=is%3Aopen+is%3Apr+label%3A%22Good+First+Review%22) are good starting points for contributors interested in doing code reviews.
+
+## Reporting Security Issues
+
+If you discover a security vulnerability, please see [SECURITY.md](https://github.com/WordPress/gutenberg/blob/trunk/SECURITY.md) for reporting instructions. Do not create public issues for security vulnerabilities.
+
+## Next Steps
+
+Ready to contribute? Here are your next steps:
+
+<CardGroup cols={2}>
+  <Card title="Code Contributions" icon="code" href="/contributing/code-contributions">
+    Set up your development environment and start coding
+  </Card>
+  <Card title="Documentation" icon="book" href="/contributing/documentation">
+    Help improve documentation for developers and users
+  </Card>
+  <Card title="Testing Guide" icon="flask" href="/contributing/testing">
+    Learn how to write and run tests
+  </Card>
+  <Card title="Git Workflow" icon="code-branch" href="/contributing/code-contributions#git-workflow">
+    Understand the pull request process
+  </Card>
+</CardGroup>

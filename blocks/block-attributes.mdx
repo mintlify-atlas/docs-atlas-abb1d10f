@@ -1,0 +1,584 @@
+---
+title: Block Attributes
+description: Define block data structure and how attributes are extracted from post content
+---
+
+Block attributes define the data structure and persistence layer for your blocks. They specify what data your block stores and how that data is extracted from saved post content.
+
+## Attribute Definition
+
+Attributes are defined in the `attributes` object of your block configuration. Each attribute has a key and a definition object:
+
+```js
+attributes: {
+    url: {
+        type: 'string',
+        source: 'attribute',
+        selector: 'img',
+        attribute: 'src',
+    },
+    title: {
+        type: 'string',
+    },
+    size: {
+        enum: [ 'large', 'small' ],
+    },
+}
+```
+
+## Attribute Properties
+
+### Type Validation
+
+<ParamField path="type" type="string">
+  Specifies the data type. Must be one of:
+  - `null`
+  - `boolean`
+  - `object`
+  - `array`
+  - `string`
+  - `integer`
+  - `number` (same as integer)
+</ParamField>
+
+```js
+attributes: {
+    title: {
+        type: 'string',
+    },
+    count: {
+        type: 'number',
+    },
+    isActive: {
+        type: 'boolean',
+    },
+    items: {
+        type: 'array',
+    },
+    settings: {
+        type: 'object',
+    },
+}
+```
+
+### Enum Validation
+
+<ParamField path="enum" type="array">
+  Restricts the attribute to a fixed set of allowed values
+</ParamField>
+
+```js
+attributes: {
+    size: {
+        enum: [ 'large', 'small', 'tiny' ]
+    },
+    direction: {
+        type: 'string',
+        enum: [ 'ltr', 'rtl' ]
+    }
+}
+```
+
+### Default Value
+
+<ParamField path="default" type="any">
+  Default value used when no matching content is found
+</ParamField>
+
+```js
+attributes: {
+    dropCap: {
+        type: 'boolean',
+        default: false
+    },
+    tagName: {
+        type: 'string',
+        enum: [ 'a', 'button' ],
+        default: 'a'
+    },
+    isStackedOnMobile: {
+        type: 'boolean',
+        default: true
+    }
+}
+```
+
+### Role
+
+<ParamField path="role" type="string">
+  Designates the conceptual purpose of the attribute:
+  - `content` - User-editable content (enables content-only editing)
+  - `local` - Temporary, non-persistable data (not saved to post content)
+</ParamField>
+
+```js
+attributes: {
+    content: {
+        type: 'rich-text',
+        source: 'rich-text',
+        selector: 'p',
+        role: 'content',  // Marks as user content
+    },
+    tempData: {
+        type: 'string',
+        role: 'local',  // Not saved to database
+    }
+}
+```
+
+## Attribute Sources
+
+The `source` field determines where and how attribute values are stored and extracted.
+
+### No Source (Comment Delimiter)
+
+When no `source` is specified, data is stored in the block's comment delimiter:
+
+```js
+attributes: {
+    title: {
+        type: 'string',
+        // No source - stored in comment
+    }
+}
+```
+
+**Saved as:**
+```html
+<!-- wp:my-plugin/book {"title":"Hello World"} -->
+<div class="wp-block-my-plugin-book">Content</div>
+<!-- /wp:my-plugin/book -->
+```
+
+### Attribute Source
+
+Extract values from HTML element attributes:
+
+<ParamField path="source" type="'attribute'">
+  Must be used with `selector` and `attribute` fields
+</ParamField>
+
+```js
+attributes: {
+    url: {
+        type: 'string',
+        source: 'attribute',
+        selector: 'img',
+        attribute: 'src',
+    },
+    alt: {
+        type: 'string',
+        source: 'attribute',
+        selector: 'img',
+        attribute: 'alt',
+    }
+}
+```
+
+**Extracts from:**
+```html
+<img src="https://example.com/image.jpg" alt="Description" />
+```
+
+**Results in:**
+```js
+{
+    url: "https://example.com/image.jpg",
+    alt: "Description"
+}
+```
+
+#### Boolean Attributes
+
+For existence checks (e.g., `disabled` attribute), use `type: 'boolean'`:
+
+```js
+attributes: {
+    disabled: {
+        type: 'boolean',
+        source: 'attribute',
+        selector: 'button',
+        attribute: 'disabled',
+    }
+}
+```
+
+### Text Source
+
+Extract inner text content using [`textContent`](https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent):
+
+```js
+attributes: {
+    caption: {
+        type: 'string',
+        source: 'text',
+        selector: 'figcaption',
+    }
+}
+```
+
+**Extracts from:**
+```html
+<figure>
+    <img src="/image.jpg" />
+    <figcaption>The inner text of the figcaption element</figcaption>
+</figure>
+```
+
+**Results in:**
+```js
+{ caption: "The inner text of the figcaption element" }
+```
+
+### HTML Source
+
+Extract inner HTML using [`innerHTML`](https://developer.mozilla.org/en-US/docs/Web/API/Element/innerHTML):
+
+```js
+attributes: {
+    content: {
+        type: 'string',
+        source: 'html',
+        selector: 'figcaption',
+    }
+}
+```
+
+**Extracts from:**
+```html
+<figcaption>The inner text of the <strong>figcaption</strong> element</figcaption>
+```
+
+**Results in:**
+```js
+{ content: "The inner text of the <strong>figcaption</strong> element" }
+```
+
+### Rich-Text Source
+
+For `RichText` components that support formatting:
+
+```js
+attributes: {
+    content: {
+        type: 'rich-text',
+        source: 'rich-text',
+        selector: 'p',
+        role: 'content'
+    }
+}
+```
+
+### Query Source
+
+Extract arrays of objects by matching multiple elements:
+
+```js
+attributes: {
+    images: {
+        type: 'array',
+        source: 'query',
+        selector: 'img',
+        query: {
+            url: {
+                type: 'string',
+                source: 'attribute',
+                attribute: 'src',
+            },
+            alt: {
+                type: 'string',
+                source: 'attribute',
+                attribute: 'alt',
+            },
+        }
+    }
+}
+```
+
+**Extracts from:**
+```html
+<div>
+    <img src="https://example.com/large.jpg" alt="large image" />
+    <img src="https://example.com/small.jpg" alt="small image" />
+</div>
+```
+
+**Results in:**
+```js
+{
+    images: [
+        { url: "https://example.com/large.jpg", alt: "large image" },
+        { url: "https://example.com/small.jpg", alt: "small image" }
+    ]
+}
+```
+
+## Real-World Examples
+
+### Paragraph Block Attributes
+
+From `packages/block-library/src/paragraph/block.json`:
+
+```json
+{
+    "attributes": {
+        "content": {
+            "type": "rich-text",
+            "source": "rich-text",
+            "selector": "p",
+            "role": "content"
+        },
+        "dropCap": {
+            "type": "boolean",
+            "default": false
+        },
+        "placeholder": {
+            "type": "string"
+        },
+        "direction": {
+            "type": "string",
+            "enum": [ "ltr", "rtl" ]
+        }
+    }
+}
+```
+
+### Button Block Attributes
+
+From `packages/block-library/src/button/block.json`:
+
+```json
+{
+    "attributes": {
+        "text": {
+            "type": "rich-text",
+            "source": "rich-text",
+            "selector": "a,button",
+            "role": "content"
+        },
+        "url": {
+            "type": "string",
+            "source": "attribute",
+            "selector": "a",
+            "attribute": "href",
+            "role": "content"
+        },
+        "linkTarget": {
+            "type": "string",
+            "source": "attribute",
+            "selector": "a",
+            "attribute": "target",
+            "role": "content"
+        },
+        "rel": {
+            "type": "string",
+            "source": "attribute",
+            "selector": "a",
+            "attribute": "rel",
+            "role": "content"
+        },
+        "backgroundColor": {
+            "type": "string"
+        },
+        "textColor": {
+            "type": "string"
+        },
+        "gradient": {
+            "type": "string"
+        }
+    }
+}
+```
+
+### Group Block Attributes
+
+From `packages/block-library/src/group/block.json`:
+
+```json
+{
+    "attributes": {
+        "tagName": {
+            "type": "string",
+            "default": "div"
+        },
+        "templateLock": {
+            "type": [ "string", "boolean" ],
+            "enum": [ "all", "insert", "contentOnly", false ]
+        }
+    }
+}
+```
+
+## Using Attributes in Components
+
+### In Edit Function
+
+```jsx
+export default function Edit( { attributes, setAttributes } ) {
+    const { content, alignment, fontSize } = attributes;
+
+    return (
+        <RichText
+            value={ content }
+            onChange={ ( newContent ) => setAttributes( { content: newContent } ) }
+            style={ {
+                textAlign: alignment,
+                fontSize: fontSize + 'px'
+            } }
+        />
+    );
+}
+```
+
+### In Save Function
+
+```jsx
+export default function save( { attributes } ) {
+    const blockProps = useBlockProps.save();
+
+    return (
+        <div { ...blockProps }>
+            <img src={ attributes.url } alt={ attributes.alt } />
+            <p className="book-author">{ attributes.author }</p>
+        </div>
+    );
+}
+```
+
+## Meta Attributes (Deprecated)
+
+<Warning>
+Meta attributes are deprecated. Use `EntityProvider` and related hooks from `@wordpress/core-data` instead.
+</Warning>
+
+Old approach (deprecated):
+```js
+attributes: {
+    author: {
+        type: 'string',
+        source: 'meta',
+        meta: 'author'
+    },
+}
+```
+
+New approach:
+```js
+import { useEntityProp } from '@wordpress/core-data';
+
+function Edit() {
+    const [ meta, setMeta ] = useEntityProp( 'postType', 'post', 'meta' );
+    const author = meta.author;
+    
+    const updateAuthor = ( newAuthor ) => {
+        setMeta( { ...meta, author: newAuthor } );
+    };
+}
+```
+
+## Attribute Selectors
+
+The `selector` field uses CSS selectors to target elements:
+
+```js
+// Tag selector
+selector: 'img'
+
+// Class selector
+selector: '.book-author'
+
+// ID selector
+selector: '#unique-element'
+
+// Attribute selector
+selector: 'img[data-id]'
+
+// Descendant selector
+selector: '.wp-block-image img'
+
+// Multiple selectors
+selector: 'a,button'
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use source whenever possible">
+    Store data in HTML markup rather than comment delimiters. This makes blocks more portable and reduces database overhead.
+  </Accordion>
+  
+  <Accordion title="Define appropriate types">
+    Always specify the `type` field to ensure proper validation and prevent data corruption.
+  </Accordion>
+  
+  <Accordion title="Use role for content attributes">
+    Mark user-editable content with `role: 'content'` to enable content-only editing modes.
+  </Accordion>
+  
+  <Accordion title="Provide sensible defaults">
+    Use the `default` field to ensure your block works even when attributes are undefined.
+  </Accordion>
+  
+  <Accordion title="Use enum for fixed values">
+    When an attribute should only accept specific values, use `enum` for validation.
+  </Accordion>
+</AccordionGroup>
+
+## TypeScript Support
+
+```typescript
+interface BookBlockAttributes {
+    title: string;
+    author: string;
+    pages: number;
+    isAvailable: boolean;
+    tags: string[];
+}
+
+import type { BlockEditProps } from '@wordpress/blocks';
+
+export default function Edit( {
+    attributes,
+    setAttributes
+}: BlockEditProps<BookBlockAttributes> ) {
+    // TypeScript now knows the shape of attributes
+    const { title, author, pages } = attributes;
+}
+```
+
+## Migration and Deprecation
+
+When changing attributes, use [block deprecation](/docs/reference-guides/block-api/block-deprecation) to migrate old content:
+
+```js
+deprecated: [
+    {
+        attributes: {
+            // Old attribute definition
+            oldName: {
+                type: 'string',
+            },
+        },
+        migrate( attributes ) {
+            return {
+                // Map to new attribute
+                newName: attributes.oldName,
+            };
+        },
+        save() {
+            // Old save function
+        },
+    },
+]
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Block Supports" href="/blocks/block-supports">
+    Enable automatic attributes for common features
+  </Card>
+  <Card title="Inner Blocks" href="/blocks/inner-blocks">
+    Build blocks that contain other blocks
+  </Card>
+</CardGroup>

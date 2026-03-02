@@ -1,0 +1,355 @@
+---
+title: '@wordpress/icons'
+description: 'WordPress icon library based on Dashicons'
+---
+
+The `@wordpress/icons` package is the official WordPress icon library, providing a comprehensive collection of SVG icons for use in your WordPress projects.
+
+## Installation
+
+Install the package using npm:
+
+```bash
+npm install @wordpress/icons --save
+```
+
+<Note>
+This package assumes that your code will run in an **ES2015+** environment. If you're using an environment with limited support for such language features, include the polyfill shipped in `@wordpress/babel-preset-default`.
+</Note>
+
+## Basic Usage
+
+Import the `Icon` component along with the specific icon you want to use:
+
+```jsx
+import { Icon, check } from '@wordpress/icons';
+
+function MyComponent() {
+	return <Icon icon={ check } />;
+}
+```
+
+## Icon Component Props
+
+The `Icon` component accepts the following props:
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `icon` | `Component` | required | The icon component to render |
+| `size` | `number` | `24` | Size of the icon in pixels |
+
+### Examples
+
+<CodeGroup>
+
+```jsx Default size
+import { Icon, star } from '@wordpress/icons';
+
+<Icon icon={ star } />
+```
+
+```jsx Custom size
+import { Icon, star } from '@wordpress/icons';
+
+<Icon icon={ star } size={ 48 } />
+```
+
+```jsx Multiple icons
+import { Icon, check, close, arrowLeft } from '@wordpress/icons';
+
+function IconList() {
+	return (
+		<div>
+			<Icon icon={ check } />
+			<Icon icon={ close } />
+			<Icon icon={ arrowLeft } />
+		</div>
+	);
+}
+```
+
+</CodeGroup>
+
+## Popular Icons
+
+Here are some commonly used icons from the library:
+
+<CardGroup cols={3}>
+
+<Card title="check" icon="check">
+Checkmark for confirmations
+</Card>
+
+<Card title="close" icon="times">
+Close or dismiss actions
+</Card>
+
+<Card title="arrowLeft" icon="arrow-left">
+Back or previous navigation
+</Card>
+
+<Card title="arrowRight" icon="arrow-right">
+Forward or next navigation
+</Card>
+
+<Card title="plus" icon="plus">
+Add or create new items
+</Card>
+
+<Card title="trash" icon="trash">
+Delete or remove items
+</Card>
+
+<Card title="cog" icon="cog">
+Settings and configuration
+</Card>
+
+<Card title="search" icon="search">
+Search functionality
+</Card>
+
+<Card title="star" icon="star">
+Favorites or ratings
+</Card>
+
+</CardGroup>
+
+## Using Icons as Components
+
+You can also use icons directly as components without the `Icon` wrapper:
+
+```jsx
+import { check as checkIcon } from '@wordpress/icons';
+
+function StatusIndicator( { isComplete } ) {
+	return (
+		<div>
+			{ isComplete && checkIcon }
+		</div>
+	);
+}
+```
+
+## Icon Categories
+
+The icon library includes icons across various categories:
+
+### Action Icons
+
+Icons for common actions:
+
+```jsx
+import {
+	plus,
+	minus,
+	trash,
+	edit,
+	check,
+	close,
+	upload,
+	download
+} from '@wordpress/icons';
+```
+
+### Navigation Icons
+
+Icons for navigation:
+
+```jsx
+import {
+	arrowLeft,
+	arrowRight,
+	arrowUp,
+	arrowDown,
+	chevronLeft,
+	chevronRight,
+	chevronUp,
+	chevronDown
+} from '@wordpress/icons';
+```
+
+### Block Editor Icons
+
+Icons specific to block editing:
+
+```jsx
+import {
+	paragraph,
+	heading,
+	image,
+	gallery,
+	quote,
+	list,
+	table,
+	button
+} from '@wordpress/icons';
+```
+
+### Social Icons
+
+Social media platform icons:
+
+```jsx
+import {
+	wordPress,
+	twitter,
+	facebook,
+	instagram,
+	youtube,
+	linkedin
+} from '@wordpress/icons';
+```
+
+## Styling Icons
+
+Icons inherit the current text color by default. You can style them using CSS:
+
+```jsx
+import { Icon, heart } from '@wordpress/icons';
+
+function ColoredIcon() {
+	return (
+		<Icon
+			icon={ heart }
+			style={ { color: 'red' } }
+		/>
+	);
+}
+```
+
+Or with CSS classes:
+
+```css
+.my-icon {
+	color: #1e3a8a;
+	width: 32px;
+	height: 32px;
+}
+```
+
+```jsx
+import { Icon, star } from '@wordpress/icons';
+
+<Icon icon={ star } className="my-icon" />
+```
+
+## Browse All Icons
+
+Explore the complete icon library with interactive examples:
+
+**[View Icons in Storybook →](https://wordpress.github.io/gutenberg/?path=/docs/icons-icon--default)**
+
+## Contributing New Icons
+
+To add a new icon to the library:
+
+<Steps>
+
+<Step title="Add the SVG file">
+Place your SVG file in the `src/library/` directory using kebab-case naming (e.g., `my-new-icon.svg`).
+</Step>
+
+<Step title="Update manifest.json">
+Add an entry to `src/manifest.json`:
+
+```json
+{
+	"slug": "my-new-icon",
+	"label": "My New Icon",
+	"filePath": "library/my-new-icon.svg",
+	"public": true
+}
+```
+
+<Note>
+Set `public: true` only if you want to expose this icon through the SVG Icons API. Once public, removing icons becomes difficult, so consider carefully.
+</Note>
+</Step>
+
+<Step title="Build the package">
+Run the build script to generate TypeScript files:
+
+```bash
+npm run build
+```
+
+The build script automatically generates `.tsx` files from SVGs and updates `manifest.php`. Do not edit these files manually.
+</Step>
+
+</Steps>
+
+## TypeScript Support
+
+This package includes full TypeScript definitions:
+
+```tsx
+import { Icon } from '@wordpress/icons';
+import type { IconType } from '@wordpress/icons';
+
+interface MyComponentProps {
+	icon: IconType;
+	size?: number;
+}
+
+function MyComponent( { icon, size = 24 }: MyComponentProps ) {
+	return <Icon icon={ icon } size={ size } />;
+}
+```
+
+## Peer Dependencies
+
+This package requires React as a peer dependency:
+
+<CodeGroup>
+
+```json package.json
+{
+	"peerDependencies": {
+		"react": "^18.0.0"
+	}
+}
+```
+
+</CodeGroup>
+
+Make sure you have React 18.0.0 or higher installed in your project.
+
+## Package Details
+
+<CodeGroup>
+
+```json package.json
+{
+	"name": "@wordpress/icons",
+	"version": "11.7.0",
+	"description": "WordPress Icons package, based on dashicon.",
+	"dependencies": {
+		"@wordpress/element": "file:../element",
+		"@wordpress/primitives": "file:../primitives"
+	}
+}
+```
+
+</CodeGroup>
+
+## Related Packages
+
+- [`@wordpress/components`](/packages/components) - UI components that use these icons
+- [`@wordpress/element`](/packages/element) - React abstraction layer
+- [`@wordpress/primitives`](/packages/primitives) - SVG primitives for icons
+
+## Icon Design Guidelines
+
+When creating custom icons for the WordPress ecosystem:
+
+- Use a 24×24px viewBox
+- Keep designs simple and recognizable
+- Use a 2px stroke width for consistency
+- Maintain visual balance and optical alignment
+- Follow the existing icon style
+- Test icons at different sizes
+- Ensure accessibility with proper labels
+
+<Warning>
+Always test your icons at the default 24px size and common multiples (48px, 96px) to ensure they remain crisp and clear.
+</Warning>

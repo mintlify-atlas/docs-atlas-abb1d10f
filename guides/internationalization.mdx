@@ -1,0 +1,579 @@
+---
+title: Internationalization with @wordpress/i18n
+description: Learn how to internationalize your WordPress Block Editor code using the @wordpress/i18n package for multilingual support.
+---
+
+Internationalization (i18n) enables you to prepare your WordPress Block Editor code for translation into multiple languages. The `@wordpress/i18n` package provides JavaScript utilities that mirror WordPress's PHP internationalization functions.
+
+## Installation
+
+Install the i18n package:
+
+```bash
+npm install @wordpress/i18n --save
+```
+
+## Core Translation Functions
+
+### Basic Translation: __()
+
+The `__()` function retrieves translated text:
+
+<CodeGroup>
+```js Simple Translation
+import { __ } from '@wordpress/i18n';
+
+const greeting = __( 'Hello World', 'text-domain' );
+```
+
+```jsx In JSX
+import { __ } from '@wordpress/i18n';
+
+function MyComponent() {
+  return (
+    <div>
+      <h1>{ __( 'Welcome to my plugin', 'my-plugin' ) }</h1>
+      <p>{ __( 'This is a translated paragraph.', 'my-plugin' ) }</p>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+### Contextual Translation: _x()
+
+Use `_x()` when the same string needs different translations based on context:
+
+```js
+import { _x } from '@wordpress/i18n';
+
+// "Post" as a noun
+const postNoun = _x( 'Post', 'noun', 'my-plugin' );
+
+// "Post" as a verb
+const postVerb = _x( 'Post', 'verb', 'my-plugin' );
+```
+
+<Tabs>
+  <Tab title="UI Context">
+    ```js
+    import { _x } from '@wordpress/i18n';
+
+    // Button label
+    const submitLabel = _x( 'Submit', 'button label', 'my-plugin' );
+
+    // Form field label  
+    const submitField = _x( 'Submit', 'form field', 'my-plugin' );
+    ```
+  </Tab>
+  <Tab title="Content Context">
+    ```js
+    // "Read" as in "read a book"
+    const readVerb = _x( 'Read', 'past tense of read', 'my-plugin' );
+
+    // "Read" as in "he read the book"
+    const readPast = _x( 'Read', 'present tense', 'my-plugin' );
+    ```
+  </Tab>
+</Tabs>
+
+### Plural Forms: _n()
+
+Handle singular and plural forms correctly:
+
+```js
+import { _n, sprintf } from '@wordpress/i18n';
+
+function ItemCount( { count } ) {
+  const message = sprintf(
+    _n( '%d item', '%d items', count, 'my-plugin' ),
+    count
+  );
+
+  return <p>{ message }</p>;
+}
+
+// Usage:
+// count = 1: "1 item"
+// count = 5: "5 items"
+```
+
+### Plural Forms with Context: _nx()
+
+Combine pluralization with context:
+
+```js
+import { _nx, sprintf } from '@wordpress/i18n';
+
+function CommentCount( { count } ) {
+  const message = sprintf(
+    _nx(
+      '%d comment',
+      '%d comments',
+      count,
+      'number of comments',
+      'my-plugin'
+    ),
+    count
+  );
+
+  return <span>{ message }</span>;
+}
+```
+
+## String Formatting with sprintf()
+
+The `sprintf()` function formats strings with placeholders:
+
+<CodeGroup>
+```js Basic Formatting
+import { sprintf, __ } from '@wordpress/i18n';
+
+const userName = 'John';
+const greeting = sprintf(
+  __( 'Hello, %s!', 'my-plugin' ),
+  userName
+);
+// Result: "Hello, John!"
+```
+
+```js Multiple Arguments
+import { sprintf, __ } from '@wordpress/i18n';
+
+const message = sprintf(
+  __( '%1$s has %2$d unread messages', 'my-plugin' ),
+  'Alice',
+  5
+);
+// Result: "Alice has 5 unread messages"
+```
+
+```js Number Formatting
+import { sprintf, _n } from '@wordpress/i18n';
+
+const count = 42;
+const text = sprintf(
+  _n( 'You have %d new notification', 'You have %d new notifications', count, 'my-plugin' ),
+  count
+);
+```
+</CodeGroup>
+
+<Note>
+**Format Specifiers**:
+- `%s` - String
+- `%d` - Integer
+- `%f` - Float
+- `%1$s`, `%2$d` - Positional arguments (recommended for translations)
+</Note>
+
+## Block Registration Example
+
+Translate block metadata and content:
+
+```js
+import { registerBlockType } from '@wordpress/blocks';
+import { __ } from '@wordpress/i18n';
+import { useBlockProps, RichText } from '@wordpress/block-editor';
+
+registerBlockType( 'my-plugin/custom-block', {
+  title: __( 'Custom Block', 'my-plugin' ),
+  description: __( 'A custom block for displaying content.', 'my-plugin' ),
+  category: 'common',
+  attributes: {
+    content: {
+      type: 'string',
+      default: '',
+    },
+  },
+  edit: ( { attributes, setAttributes } ) => {
+    const blockProps = useBlockProps();
+
+    return (
+      <div { ...blockProps }>
+        <RichText
+          tagName="p"
+          value={ attributes.content }
+          onChange={ ( content ) => setAttributes( { content } ) }
+          placeholder={ __( 'Enter your content here...', 'my-plugin' ) }
+        />
+      </div>
+    );
+  },
+  save: ( { attributes } ) => {
+    const blockProps = useBlockProps.save();
+    return (
+      <div { ...blockProps }>
+        <RichText.Content tagName="p" value={ attributes.content } />
+      </div>
+    );
+  },
+} );
+```
+
+## Inspector Controls Example
+
+Translate panel labels and help text:
+
+```jsx
+import { InspectorControls } from '@wordpress/block-editor';
+import { PanelBody, ToggleControl, TextControl } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
+
+function BlockEdit( { attributes, setAttributes } ) {
+  return (
+    <>
+      <InspectorControls>
+        <PanelBody title={ __( 'Block Settings', 'my-plugin' ) } initialOpen={ true }>
+          <ToggleControl
+            label={ __( 'Enable Feature', 'my-plugin' ) }
+            help={ __( 'Toggle this to enable the special feature.', 'my-plugin' ) }
+            checked={ attributes.featureEnabled }
+            onChange={ ( value ) => setAttributes( { featureEnabled: value } ) }
+          />
+          <TextControl
+            label={ __( 'Custom Label', 'my-plugin' ) }
+            help={ __( 'Enter a custom label for this block.', 'my-plugin' ) }
+            value={ attributes.customLabel }
+            onChange={ ( value ) => setAttributes( { customLabel: value } ) }
+          />
+        </PanelBody>
+      </InspectorControls>
+      {/* Block content */}
+    </>
+  );
+}
+```
+
+## Dynamic Content Example
+
+Combine translations with dynamic values:
+
+```jsx
+import { __, sprintf } from '@wordpress/i18n';
+import { useSelect } from '@wordpress/data';
+import { store as coreDataStore } from '@wordpress/core-data';
+
+function PostCount() {
+  const { totalPosts, isResolving } = useSelect( ( select ) => {
+    const query = { status: 'publish', per_page: 1 };
+    const posts = select( coreDataStore ).getEntityRecords( 'postType', 'post', query );
+    
+    return {
+      totalPosts: posts?.length || 0,
+      isResolving: select( coreDataStore ).isResolving(
+        'getEntityRecords',
+        [ 'postType', 'post', query ]
+      ),
+    };
+  }, [] );
+
+  if ( isResolving ) {
+    return <p>{ __( 'Loading...', 'my-plugin' ) }</p>;
+  }
+
+  return (
+    <p>
+      { sprintf(
+        __( 'You have %d published posts.', 'my-plugin' ),
+        totalPosts
+      ) }
+    </p>
+  );
+}
+```
+
+## RTL (Right-to-Left) Support
+
+Check if the current locale uses RTL:
+
+```js
+import { isRTL } from '@wordpress/i18n';
+
+function DirectionalComponent() {
+  const alignment = isRTL() ? 'right' : 'left';
+
+  return (
+    <div style={ { textAlign: alignment } }>
+      { __( 'This text respects text direction', 'my-plugin' ) }
+    </div>
+  );
+}
+```
+
+## Managing Locale Data
+
+### Setting Locale Data
+
+Load translation data programmatically:
+
+```js
+import { setLocaleData } from '@wordpress/i18n';
+
+const translations = {
+  '': {
+    domain: 'my-plugin',
+    lang: 'es_ES',
+    plural_forms: 'nplurals=2; plural=(n != 1);',
+  },
+  'Hello World': [ 'Hola Mundo' ],
+};
+
+setLocaleData( translations, 'my-plugin' );
+```
+
+### Checking Translations
+
+```js
+import { hasTranslation } from '@wordpress/i18n';
+
+if ( hasTranslation( 'Hello World', 'greeting context', 'my-plugin' ) ) {
+  console.log( 'Translation exists' );
+}
+```
+
+## Best Practices
+
+### Use Consistent Text Domains
+
+```js
+// Good: Consistent domain
+const title = __( 'My Plugin', 'my-plugin' );
+const subtitle = __( 'Settings', 'my-plugin' );
+
+// Bad: Inconsistent domains
+const title = __( 'My Plugin', 'my-plugin' );
+const subtitle = __( 'Settings', 'different-domain' );
+```
+
+### Avoid String Concatenation
+
+<CodeGroup>
+```js Good Practice
+import { sprintf, __ } from '@wordpress/i18n';
+
+const message = sprintf(
+  __( 'Welcome back, %s!', 'my-plugin' ),
+  userName
+);
+```
+
+```js Bad Practice
+// Don't do this - makes translation difficult
+const message = __( 'Welcome back, ', 'my-plugin' ) + userName + '!';
+```
+</CodeGroup>
+
+### Provide Context for Translators
+
+```js
+// Good: Clear context
+const label = _x( 'Post', 'noun: a blog post', 'my-plugin' );
+
+// Better: Even more specific
+const buttonText = _x(
+  'Save',
+  'button label for saving a draft post',
+  'my-plugin'
+);
+```
+
+### Use Positional Arguments
+
+```js
+// Good: Positional placeholders allow translators to reorder
+const message = sprintf(
+  __( '%1$s wrote %2$d posts in %3$s', 'my-plugin' ),
+  author,
+  postCount,
+  month
+);
+
+// In some languages, the order might be different:
+// "%3$s में %1$s ने %2$d पोस्ट लिखे" (Hindi)
+```
+
+### Extract Full Sentences
+
+<CodeGroup>
+```js Good Practice
+const message = __(
+  'Please check your email for the verification link.',
+  'my-plugin'
+);
+```
+
+```js Bad Practice
+// Splitting sentences makes translation difficult
+const part1 = __( 'Please check your email', 'my-plugin' );
+const part2 = __( 'for the verification link', 'my-plugin' );
+const message = `${part1} ${part2}.`;
+```
+</CodeGroup>
+
+## Common Patterns
+
+### Loading States
+
+```jsx
+import { __ } from '@wordpress/i18n';
+import { Spinner } from '@wordpress/components';
+
+function LoadingComponent( { isLoading } ) {
+  if ( isLoading ) {
+    return (
+      <div>
+        <Spinner />
+        <p>{ __( 'Loading content...', 'my-plugin' ) }</p>
+      </div>
+    );
+  }
+
+  return <div>{ __( 'Content loaded', 'my-plugin' ) }</div>;
+}
+```
+
+### Error Messages
+
+```jsx
+import { sprintf, __ } from '@wordpress/i18n';
+
+function ErrorDisplay( { error } ) {
+  if ( ! error ) {
+    return null;
+  }
+
+  return (
+    <div className="error-notice">
+      <p>
+        { sprintf(
+          __( 'An error occurred: %s', 'my-plugin' ),
+          error.message
+        ) }
+      </p>
+      <button>
+        { __( 'Try Again', 'my-plugin' ) }
+      </button>
+    </div>
+  );
+}
+```
+
+### Conditional Messages
+
+```jsx
+import { __, sprintf } from '@wordpress/i18n';
+
+function StatusMessage( { status, count } ) {
+  const messages = {
+    draft: sprintf(
+      __( 'You have %d draft posts', 'my-plugin' ),
+      count
+    ),
+    published: sprintf(
+      __( 'You have %d published posts', 'my-plugin' ),
+      count
+    ),
+    archived: sprintf(
+      __( 'You have %d archived posts', 'my-plugin' ),
+      count
+    ),
+  };
+
+  return <p>{ messages[ status ] }</p>;
+}
+```
+
+## WordPress Script Translations
+
+When enqueueing JavaScript files, set the text domain for automatic translation loading:
+
+```php
+<?php
+function my_plugin_enqueue_scripts() {
+  wp_enqueue_script(
+    'my-plugin-script',
+    plugins_url( 'build/index.js', __FILE__ ),
+    array( 'wp-element', 'wp-i18n' ),
+    '1.0.0',
+    true
+  );
+
+  // Set script translations
+  wp_set_script_translations(
+    'my-plugin-script',
+    'my-plugin',
+    plugin_dir_path( __FILE__ ) . 'languages'
+  );
+}
+add_action( 'enqueue_block_editor_assets', 'my_plugin_enqueue_scripts' );
+```
+
+## Translation File Generation
+
+Use WP-CLI to extract translatable strings:
+
+```bash
+# Extract strings from JavaScript files
+wp i18n make-pot . languages/my-plugin.pot --domain=my-plugin
+
+# Generate JSON files for JavaScript
+wp i18n make-json languages --no-purge
+```
+
+## Testing Translations
+
+Test your translations with different locales:
+
+```js
+import { setLocaleData, __ } from '@wordpress/i18n';
+
+// Temporarily set test translations
+setLocaleData(
+  {
+    '': { domain: 'my-plugin', lang: 'test' },
+    'Hello World': [ 'Test Translation' ],
+  },
+  'my-plugin'
+);
+
+console.log( __( 'Hello World', 'my-plugin' ) );
+// Output: "Test Translation"
+```
+
+## Common Mistakes to Avoid
+
+1. **Don't use variables as translatable strings**:
+   ```js
+   // Bad
+   const key = 'Hello';
+   const text = __( key, 'my-plugin' );
+   
+   // Good
+   const text = __( 'Hello', 'my-plugin' );
+   ```
+
+2. **Don't concatenate translations**:
+   ```js
+   // Bad
+   const msg = __( 'Hello', 'my-plugin' ) + ' ' + __( 'World', 'my-plugin' );
+   
+   // Good
+   const msg = __( 'Hello World', 'my-plugin' );
+   ```
+
+3. **Don't split sentences**:
+   ```js
+   // Bad
+   const text = __( 'Click', 'my-plugin' ) + ' ' + __( 'here', 'my-plugin' );
+   
+   // Good
+   const text = __( 'Click here', 'my-plugin' );
+   ```
+
+## Next Steps
+
+- Learn about [Data Management](/guides/data-management) for dynamic content
+- Explore [Filters and Hooks](/guides/filters-and-hooks) for extending functionality
+- Read the [WordPress i18n documentation](https://developer.wordpress.org/plugins/internationalization/)
+- Check the [@wordpress/i18n package reference](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-i18n/)

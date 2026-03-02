@@ -1,0 +1,225 @@
+---
+title: '@wordpress/api-fetch'
+description: 'Utility to make WordPress REST API requests'
+---
+
+# API Fetch
+
+The `@wordpress/api-fetch` package is a utility wrapper around `window.fetch` designed specifically for making WordPress REST API requests. It simplifies API calls by automatically handling REST API root URLs, nonces, and request parsing.
+
+## Installation
+
+You can install the package using npm:
+
+```bash
+npm install @wordpress/api-fetch --save
+```
+
+<Note>
+This package assumes your code will run in an **ES2015+** environment. If you're targeting environments with limited support for modern JavaScript features, include the polyfill from `@wordpress/babel-preset-default`.
+</Note>
+
+## Basic Usage
+
+### Making GET Requests
+
+You can make GET requests by passing a `path` option to `apiFetch`:
+
+```js
+import apiFetch from '@wordpress/api-fetch';
+
+apiFetch( { path: '/wp/v2/posts' } ).then( ( posts ) => {
+	console.log( posts );
+} );
+```
+
+### GET with Query Parameters
+
+Combine `apiFetch` with `addQueryArgs` from `@wordpress/url` to add query parameters:
+
+```js
+import apiFetch from '@wordpress/api-fetch';
+import { addQueryArgs } from '@wordpress/url';
+
+const queryParams = { include: [1, 2, 3] }; // Return posts with ID = 1, 2, 3.
+
+apiFetch( { path: addQueryArgs( '/wp/v2/posts', queryParams ) } ).then( ( posts ) => {
+	console.log( posts );
+} );
+```
+
+### Making POST Requests
+
+You can use the `method` and `data` options to send POST requests:
+
+```js
+apiFetch( {
+	path: '/wp/v2/posts/1',
+	method: 'POST',
+	data: { title: 'New Post Title' },
+} ).then( ( res ) => {
+	console.log( res );
+} );
+```
+
+## API Reference
+
+### apiFetch( options )
+
+The main function that makes API requests. It accepts all standard `fetch` options plus additional WordPress-specific options.
+
+#### Options
+
+<ParamField path="path" type="string">
+  Shorthand to be used in place of `url`, appended to the REST API root URL for the current site.
+</ParamField>
+
+<ParamField path="url" type="string">
+  Absolute URL to the endpoint from which to fetch.
+</ParamField>
+
+<ParamField path="parse" type="boolean" default="true">
+  Unlike `fetch`, the `Promise` return value of `apiFetch` will resolve to the parsed JSON result. Disable this behavior by passing `parse` as `false`.
+</ParamField>
+
+<ParamField path="data" type="object">
+  Sent on `POST` or `PUT` requests only. Shorthand to be used in place of `body`, accepts an object value to be stringified to JSON.
+</ParamField>
+
+<ParamField path="method" type="string">
+  HTTP method for the request (e.g., 'GET', 'POST', 'PUT', 'DELETE').
+</ParamField>
+
+## Aborting Requests
+
+You can abort requests using the `AbortController` API:
+
+```js
+const controller =
+	typeof AbortController === 'undefined' ? undefined : new AbortController();
+
+apiFetch( { path: '/wp/v2/posts', signal: controller?.signal } ).catch(
+	( error ) => {
+		if ( error.name === 'AbortError' ) {
+			console.log( 'Request has been aborted' );
+		}
+	}
+);
+
+controller?.abort();
+```
+
+<Note>
+For legacy browsers that don't support `AbortController`, you can provide your own polyfill or ignore the aborting functionality as a progressive enhancement.
+</Note>
+
+## Middleware
+
+The `api-fetch` package supports middleware functions that wrap `apiFetch` calls to perform pre/post processing.
+
+### Using Middleware
+
+You can add custom middleware using the `use()` method:
+
+```js
+import apiFetch from '@wordpress/api-fetch';
+
+apiFetch.use( ( options, next ) => {
+	const start = Date.now();
+	const result = next( options );
+	result.then( () => {
+		console.log( 'The request took ' + ( Date.now() - start ) + 'ms' );
+	} );
+	return result;
+} );
+```
+
+### apiFetch.use( middleware )
+
+Registers a middleware function.
+
+<ParamField path="middleware" type="function" required>
+  A function that receives `options` and `next`, and returns a Promise. The middleware should call `next(options)` to continue the chain.
+</ParamField>
+
+## Built-in Middleware
+
+### Nonce Middleware
+
+The nonce middleware automatically adds authentication to your requests:
+
+```js
+import apiFetch from '@wordpress/api-fetch';
+
+const nonce = 'nonce value';
+apiFetch.use( apiFetch.createNonceMiddleware( nonce ) );
+```
+
+#### apiFetch.createNonceMiddleware( nonce )
+
+Creates middleware that adds a nonce to requests for authentication.
+
+<ParamField path="nonce" type="string" required>
+  The nonce value for authentication.
+</ParamField>
+
+<ResponseField name="middleware" type="function">
+  The middleware function with a `nonce` property that you can update with a fresh nonce value.
+</ResponseField>
+
+### Root URL Middleware
+
+The root URL middleware sets the base URL for API requests:
+
+```js
+import apiFetch from '@wordpress/api-fetch';
+
+const rootURL = 'http://my-wordpress-site/wp-json/';
+apiFetch.use( apiFetch.createRootURLMiddleware( rootURL ) );
+```
+
+#### apiFetch.createRootURLMiddleware( rootURL )
+
+Creates middleware that prepends the root URL to the path.
+
+<ParamField path="rootURL" type="string" required>
+  The REST API root URL.
+</ParamField>
+
+## Custom Fetch Handler
+
+You can replace the default `window.fetch` with a custom handler using `setFetchHandler()`:
+
+### apiFetch.setFetchHandler( handler )
+
+Sets a custom fetch handler for making requests.
+
+<ParamField path="handler" type="function" required>
+  A function that receives the request options and returns a Promise.
+</ParamField>
+
+### Example with Axios
+
+```js
+import apiFetch from '@wordpress/api-fetch';
+import axios from 'axios';
+
+apiFetch.setFetchHandler( ( options ) => {
+	const { url, path, data, method } = options;
+
+	return axios( {
+		url: url || path,
+		method,
+		data,
+	} );
+} );
+```
+
+## Version
+
+Current version: **7.40.0**
+
+## Links
+
+- [GitHub Repository](https://github.com/WordPress/gutenberg/tree/HEAD/packages/api-fetch)
+- [npm Package](https://www.npmjs.com/package/@wordpress/api-fetch)
